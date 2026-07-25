@@ -111,6 +111,30 @@ export function midpoint(a: THREE.Vector3, b: THREE.Vector3): THREE.Vector3 {
 }
 
 /**
+ * 線分 [p, p+r] と線分 [q, q+s] の交差パラメータ t（p 側）を返す。交差しなければ null。
+ * 壁抜け（トンネリング）の検出に使う。
+ */
+export function segmentIntersectionT(
+  p: THREE.Vector2,
+  p2: THREE.Vector2,
+  q: THREE.Vector2,
+  q2: THREE.Vector2,
+): number | null {
+  const rx = p2.x - p.x;
+  const ry = p2.y - p.y;
+  const sx = q2.x - q.x;
+  const sy = q2.y - q.y;
+  const denom = rx * sy - ry * sx;
+  if (Math.abs(denom) < 1e-12) return null; // 平行
+  const qpx = q.x - p.x;
+  const qpy = q.y - p.y;
+  const t = (qpx * sy - qpy * sx) / denom;
+  const u = (qpx * ry - qpy * rx) / denom;
+  if (t < 0 || t > 1 || u < 0 || u > 1) return null;
+  return t;
+}
+
+/**
  * 円（中心 c・半径 r）と線分 [a, b] の衝突を解決し、めり込み解消用の押し出しベクトルを返す。
  * 衝突していなければ null。XZ 平面（Vector2 = (x, z)）で扱う。
  */
