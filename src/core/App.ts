@@ -41,6 +41,7 @@ export class App {
   readonly #updatables: Updatable[] = [];
   readonly #bag = new DisposeBag();
   readonly #devHud: DevHud | null;
+  #renderCamera: THREE.Camera;
 
   constructor({ canvas, overlayRoot }: AppOptions) {
     this.overlayRoot = overlayRoot;
@@ -51,6 +52,7 @@ export class App {
     this.camera = new THREE.PerspectiveCamera(70, vp.width / vp.height, 0.05, 200);
     this.camera.position.set(0, 1.6, 4);
 
+    this.#renderCamera = this.camera;
     this.#loop = new Loop(this.#update, this.#render);
 
     this.#bag.addFn(this.device.onViewportChange(() => this.resize()));
@@ -74,9 +76,30 @@ export class App {
     if (i >= 0) this.#updatables.splice(i, 1);
   }
 
+  /**
+   * 実際に描画に使うカメラ。正投影を要求する ViewSpot（ネッカーキューブ）で
+   * OrthographicCamera に差し替わる。
+   */
+  get renderCamera(): THREE.Camera {
+    return this.#renderCamera;
+  }
+
+  set renderCamera(camera: THREE.Camera) {
+    this.#renderCamera = camera;
+    this.resize();
+  }
+
   resize(): void {
     const { width, height } = this.device.viewport;
     resizeRenderer(this.renderer, this.camera, width, height);
+    if (this.#renderCamera !== this.camera) {
+      resizeRenderer(
+        this.renderer,
+        this.#renderCamera as THREE.PerspectiveCamera | THREE.OrthographicCamera,
+        width,
+        height,
+      );
+    }
     this.events.emit('resize', { width, height });
   }
 
@@ -97,7 +120,7 @@ export class App {
   };
 
   readonly #render = (): void => {
-    this.renderer.render(this.scene, this.camera);
+    this.renderer.render(this.scene, this.#renderCamera);
     this.quality.sampleFrame(this.#loop.frameDt);
     this.#devHud?.update(this.#loop.frameDt, this.renderer, this.quality.level);
   };

@@ -7,6 +7,9 @@ import { PlayerController } from './player/PlayerController';
 import { LoadingScreen } from './ui/LoadingScreen';
 import { SettingsMenu, type SettingsLabels } from './ui/SettingsMenu';
 import { Museum } from './world/Museum';
+import { ViewpointController } from './viewpoint/ViewpointController';
+import { ExhibitManager } from './exhibits/ExhibitManager';
+import { EXHIBITS } from './exhibits/registry';
 import { SPAWN } from './data/layout';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
@@ -51,6 +54,9 @@ const PLACEHOLDER_LABELS: SettingsLabels = {
 };
 const settingsMenu = new SettingsMenu(overlay, settings, PLACEHOLDER_LABELS);
 
+const viewpoint = new ViewpointController(app, player);
+const exhibits = new ExhibitManager(app, museum.lighting, player, viewpoint);
+
 function applySettings(): void {
   const s = settings.value;
   input.setSettings({
@@ -59,6 +65,9 @@ function applySettings(): void {
     invertY: s.invertY,
   });
   player.tuning = { ...player.tuning, headBob: s.headBob };
+  const reducedMotion = s.reducedMotion || app.device.prefersReducedMotion;
+  viewpoint.reducedMotion = reducedMotion;
+  exhibits.reducedMotion = reducedMotion;
   if (app.camera.fov !== s.fov) {
     app.camera.fov = s.fov;
     app.camera.updateProjectionMatrix();
@@ -74,13 +83,23 @@ settings.events.on('changed', applySettings);
 applySettings();
 
 app.add({
-  update(dt) {
+  update(dt, elapsed) {
     const state = input.poll(dt);
     // 設定メニューが開いている間は歩かない。閉じる操作だけ通す。
     input.suspended = settingsMenu.isOpen;
     if (state.pressed.has('settings')) settingsMenu.toggle();
     if (state.pressed.has('cancel') && settingsMenu.isOpen) settingsMenu.close();
+
     player.update(dt, state);
+
+    // ViewSpot への進入・解除。入力デバイスは問わない（§4.1）
+    if (state.pressed.has('interact') && !viewpoint.isEngaged && viewpoint.candidate) {
+      viewpoint.enter(viewpoint.candidate);
+      app.device.vibrate(15);
+    }
+    if (state.pressed.has('cancel') && viewpoint.isEngaged) viewpoint.exit();
+    viewpoint.update(dt, state);
+    exhibits.update(dt, elapsed);
   },
 });
 
@@ -91,11 +110,14 @@ if (import.meta.env.DEV) {
     player,
     input,
     settings,
+    viewpoint,
+    exhibits,
     THREE,
   };
 }
 
 async function boot(): Promise<void> {
+  await exhibits.load(EXHIBITS);
   loading.setProgress(1);
   await loading.ready('Enter');
   await app.device.tryImmersive(document.documentElement);
