@@ -40,6 +40,8 @@ export const ja = {
       '床の光る円に立つと、その展示が「効く」視点に移ります。\nヒントは伏せてあります。まず自分の目で見てください。',
     entranceControls: '移動 WASD ／ 視点 マウス ／ 決定 F ／ ヒント H ／ 一覧 Tab',
     entranceControlsTouch: '左半分で移動 ／ 右半分で視点 ／ ボタンで決定とヒント',
+    padMoveLabel: '移動: 画面左下をドラッグ',
+    padLookLabel: '視点: 画面右側をドラッグ',
     brightnessNotice: '画面の明るさの自動調整をお切りください。',
   },
   rooms: {

@@ -666,3 +666,64 @@ body {
 .vignette.is-off {
   opacity: 0;
 }
+
+/* ------------------------------------------------- 短い画面（横持ちスマホ） */
+
+/*
+  §8a: 横持ちのスマホは高さが 375〜430px しかない。
+  ヒントパネルが画面を覆うと展示が見えなくなるので、
+  高さではなく「読める最小の行数」を優先して詰める。
+*/
+@media (max-height: 480px) {
+  .hint-panel {
+    width: min(360px, calc(100vw - 28px));
+    max-height: calc(100dvh - 96px);
+    padding: 0.8rem 0.9rem 0.7rem;
+  }
+
+  .hint-title {
+    margin-bottom: 0.5rem;
+    font-size: 0.92rem;
+  }
+
+  .hint-text {
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+
+  .hint-heading {
+    margin: 0.6rem 0 0.25rem;
+  }
+
+  .hint-actions {
+    margin-top: 0.7rem;
+  }
+
+  /* 親指の可動域: ボタンは下端から離しすぎない */
+  .touch-actions {
+    bottom: calc(env(safe-area-inset-bottom) + 72px);
+  }
+
+  .hud-prompt {
+    bottom: calc(env(safe-area-inset-bottom) + 16%);
+  }
+
+  .settings-panel,
+  .exhibit-list-panel {
+    max-height: calc(100dvh - 32px);
+    padding: 0.9rem 1rem 0.8rem;
+  }
+}
+
+/* 幅の狭い縦持ちでもボタンが重ならないように */
+@media (max-width: 420px) {
+  .hint-open,
+  .hint-panel {
+    right: calc(env(safe-area-inset-right) + 12px);
+    bottom: calc(env(safe-area-inset-bottom) + 12px);
+  }
+
+  .touch-actions {
+    right: calc(env(safe-area-inset-right) + 12px);
+  }
+}

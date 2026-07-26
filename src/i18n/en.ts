@@ -42,6 +42,8 @@ export const en: Dictionary = {
       'Stand on a glowing circle on the floor and you will be moved to the viewpoint where that exhibit works.\nHints stay hidden. Look with your own eyes first.',
     entranceControls: 'Move WASD / Look Mouse / Select F / Hint H / Exhibits Tab',
     entranceControlsTouch: 'Left half to move / Right half to look / Buttons to select and hint',
+    padMoveLabel: 'Move: drag the lower-left of the screen',
+    padLookLabel: 'Look: drag the right of the screen',
     brightnessNotice: 'Please turn off automatic screen brightness.',
   },
   rooms: {

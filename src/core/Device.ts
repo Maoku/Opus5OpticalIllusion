@@ -25,8 +25,12 @@ export class Device {
   constructor() {
     const nav = typeof navigator !== 'undefined' ? navigator : undefined;
     const maxTouch = nav?.maxTouchPoints ?? 0;
-    this.isTouch = maxTouch > 0 || (typeof window !== 'undefined' && 'ontouchstart' in window);
-    this.isCoarsePointer = matchMediaSafe('(pointer: coarse)');
+    // ?touch=1 / ?touch=0 でタッチ UI を強制する。実機を用意せずに
+    // バーチャルパッドと文脈ボタンの導線を確認するための逃げ道（開発用）
+    const forced = touchOverride();
+    this.isTouch =
+      forced ?? (maxTouch > 0 || (typeof window !== 'undefined' && 'ontouchstart' in window));
+    this.isCoarsePointer = forced ?? matchMediaSafe('(pointer: coarse)');
     // iPadOS は Macintosh を名乗るため maxTouchPoints で補正する
     const ua = nav?.userAgent ?? '';
     this.isIOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && maxTouch > 1);
@@ -122,6 +126,17 @@ async function settleWithin(run: () => Promise<unknown> | undefined, ms = 1200):
   } catch {
     /* 非対応。無視して続行 */
   }
+}
+
+function touchOverride(): boolean | null {
+  try {
+    const value = new URLSearchParams(location.search).get('touch');
+    if (value === '1') return true;
+    if (value === '0') return false;
+  } catch {
+    /* 無視 */
+  }
+  return null;
 }
 
 function matchMediaSafe(query: string): boolean {

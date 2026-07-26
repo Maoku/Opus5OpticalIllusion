@@ -104,6 +104,7 @@ i18n.subscribe((t: Dictionary, locale: Locale) => {
   settingsMenu.setLabels(t.settings);
   orientationGate.setDictionary(t);
   languageSwitch.setLocale(locale);
+  input.touch?.pad.setLabels(t.ui.padMoveLabel, t.ui.padLookLabel);
   hud.setRoomName(museum.currentArea ? t.rooms[museum.currentArea.room] : null);
   // ワールド内の 3D テキストを作り直す（§5.4）
   signage.setDictionary(t);
@@ -235,7 +236,9 @@ function frame(dt: number, elapsed: number): void {
   const t = i18n.t;
   hud.setPrompt(promptFor(t, focused));
   if (app.device.isTouch) {
-    touchBar.setEnabled(!anyModalOpen());
+    // ヒントを開いている間は文脈ボタンを引っ込める。パネルの上に重なると
+    // 解説が読めなくなる（横持ちスマホは高さが 375px しかない）
+    touchBar.setEnabled(!anyModalOpen() && !hintPanel.isOpen);
     touchBar.setActions(buildTouchActions(t, hintAvailable, focused));
   }
   orientationGate.setPortrait(app.device.viewport.portrait);
@@ -260,9 +263,14 @@ function updateFootsteps(): void {
 }
 app.add({ update: frame });
 
-/** 決定キーで今なにが起きるか。ViewSpot への進入が最優先。 */
+/**
+ * 決定キーで今なにが起きるか。ViewSpot への進入が最優先。
+ *
+ * タッチのときは同じ内容が文脈ボタンに出るので、中央のプロンプトは出さない
+ * （§4.1: active source を見て「[F] …」かボタンかを出し分ける）。
+ */
 function promptFor(t: Dictionary, focused: ExhibitRecord | null): string | null {
-  if (anyModalOpen()) return null;
+  if (anyModalOpen() || input.activeSource === 'touch') return null;
   if (!viewpoint.isEngaged && viewpoint.candidate) return t.ui.standHere;
   const key = focused?.definition.interactTextKey;
   return key ? t.ui[key] : null;

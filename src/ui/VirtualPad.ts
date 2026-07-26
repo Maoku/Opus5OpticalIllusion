@@ -15,6 +15,7 @@ export class VirtualPad {
   constructor(parent: HTMLElement) {
     this.root = document.createElement('div');
     this.root.className = 'virtual-pad';
+    this.root.setAttribute('role', 'group');
     this.root.innerHTML = `
       <div class="pad-base" aria-hidden="true">
         <div class="pad-knob"></div>
@@ -44,6 +45,11 @@ export class VirtualPad {
   hide(): void {
     this.#visible = false;
     this.root.classList.remove('is-active');
+  }
+
+  /** §8c: 支援技術向けのラベル。言語別に出し分ける */
+  setLabels(move: string, look: string): void {
+    this.root.setAttribute('aria-label', `${move} / ${look}`);
   }
 
   setEnabled(enabled: boolean): void {
