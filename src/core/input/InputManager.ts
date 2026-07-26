@@ -73,6 +73,25 @@ export class InputManager {
     return this.#suspended;
   }
 
+  get pointerLocked(): boolean {
+    return this.keyboard.look.locked;
+  }
+
+  /**
+   * カーソルを返す（§9b-2）。
+   *
+   * `suspended` は移動ごと止めてしまうので、ヒント（開いたまま歩ける）には
+   * 使えない。ポインタロックだけを外す口を分けて用意する。
+   */
+  releasePointer(): void {
+    this.keyboard.look.exit();
+  }
+
+  /** 直前のフレーム以降にポインタロックが外れたか。1 回読むと下りる。 */
+  consumePointerRelease(): boolean {
+    return this.keyboard.look.consumeJustReleased();
+  }
+
   /** UI のボタンからアクションを流し込む。次の poll で pressed に現れる。 */
   dispatch(action: GameAction): void {
     this.#queued.add(action);

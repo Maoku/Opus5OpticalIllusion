@@ -13,11 +13,11 @@ import { PlayerController } from './player/PlayerController';
 import { ExhibitList } from './ui/ExhibitList';
 import { focusScene, setSceneElement } from './ui/focus';
 import { HintPanel } from './ui/HintPanel';
-import { Hud } from './ui/Hud';
+import { Hud, type KeyHint } from './ui/Hud';
 import { LanguageSwitch } from './ui/LanguageSwitch';
 import { LoadingScreen } from './ui/LoadingScreen';
 import { OrientationGate } from './ui/OrientationGate';
-import { SettingsMenu } from './ui/SettingsMenu';
+import { SettingsMenu, type ControlsHelp } from './ui/SettingsMenu';
 import { TouchActionBar, type TouchActionSpec } from './ui/TouchActionBar';
 import { ViewpointController } from './viewpoint/ViewpointController';
 import { Museum } from './world/Museum';
@@ -111,6 +111,7 @@ i18n.subscribe((t: Dictionary, locale: Locale) => {
   settingsMenu.setLabels(t.settings);
   orientationGate.setDictionary(t);
   languageSwitch.setLocale(locale);
+  settingsMenu.setControlsHelp(controlsHelp(t));
   input.touch?.pad.setLabels(t.ui.padMoveLabel, t.ui.padLookLabel);
   hud.setRoomName(museum.currentArea ? t.rooms[museum.currentArea.room] : null);
   // ワールド内の 3D テキストを作り直す（§5.4）
@@ -195,14 +196,36 @@ function anyModalOpen(): boolean {
   return settingsMenu.isOpen || exhibitList.isOpen;
 }
 
+/**
+ * UI を開いた瞬間にカーソルを返す（§9b-2/3）。
+ *
+ * 閉じても自動では再ロックしない。ユーザーがキャンバスをクリックしたときだけ
+ * 視点操作へ戻る。勝手に奪い返すと「カーソルが消える理由が分からない」に戻る。
+ */
+let uiWasOpen = false;
+function syncPointerLock(uiOpen: boolean): void {
+  if (uiOpen && !uiWasOpen) input.releasePointer();
+  uiWasOpen = uiOpen;
+}
+
 function frame(dt: number, elapsed: number): void {
   input.suspended = anyModalOpen();
+  const uiOpen = anyModalOpen() || hintPanel.isOpen;
+  syncPointerLock(uiOpen);
   const state = input.poll(dt);
+
+  // ポインタロックが外れた直後の cancel は捨てる。Chrome の Esc は
+  // ロック解除に消費されるが、届く環境では「解除 ＋ ヒントを閉じる」の
+  // 二重動作になる（§9b-4）。あわせて戻り方を告知する。
+  const justUnlocked = input.consumePointerRelease();
+  if (justUnlocked && !uiOpen && input.activeSource === 'keyboardMouse') {
+    hud.showToast(i18n.t.controls.clickToLook, 3200);
+  }
 
   // --- モーダル ---------------------------------------------------------
   if (state.pressed.has('settings')) settingsMenu.toggle();
   if (state.pressed.has('list')) exhibitList.toggle(exhibits.list);
-  if (state.pressed.has('cancel')) {
+  if (state.pressed.has('cancel') && !justUnlocked) {
     if (settingsMenu.isOpen) settingsMenu.close();
     else if (exhibitList.isOpen) exhibitList.close();
     else if (hintPanel.isOpen) hintPanel.close();
@@ -242,6 +265,7 @@ function frame(dt: number, elapsed: number): void {
   // --- HUD / タッチ UI --------------------------------------------------
   const t = i18n.t;
   hud.setPrompt(promptFor(t, focused));
+  hud.setKeyHints(keyHintsFor(t, uiOpen, hintAvailable));
   if (app.device.isTouch) {
     // ヒントを開いている間は文脈ボタンを引っ込める。パネルの上に重なると
     // 解説が読めなくなる（横持ちスマホは高さが 375px しかない）
@@ -294,6 +318,45 @@ function promptFor(t: Dictionary, focused: ExhibitRecord | null): string | null 
   if (!viewpoint.isEngaged && viewpoint.candidate) return t.ui.standHere;
   const key = focused?.definition.interactTextKey;
   return key ? t.ui[key] : null;
+}
+
+/**
+ * 画面下端の常設キーガイド（§9b-1）。
+ *
+ * ポインタロック中はカーソルが消え、UI がキーで操作できることが伝わらない。
+ * 状況に応じて出し分ける。タッチが active のときは Hud 側で伏せられる。
+ */
+function keyHintsFor(t: Dictionary, uiOpen: boolean, hintAvailable: boolean): KeyHint[] {
+  if (uiOpen) return [{ key: 'Esc', label: t.controls.close }];
+  if (viewpoint.isEngaged) {
+    const hints: KeyHint[] = [];
+    if (hintAvailable) hints.push({ key: 'H', label: t.controls.hint });
+    if (hintPanel.stage === 'appearance') hints.push({ key: 'R', label: t.controls.reveal });
+    hints.push({ key: 'Esc', label: t.controls.leaveView });
+    return hints;
+  }
+  const hints: KeyHint[] = [];
+  if (hintAvailable) hints.push({ key: 'H', label: t.controls.hint });
+  hints.push({ key: 'Tab', label: t.controls.list }, { key: 'O', label: t.controls.settings });
+  if (input.pointerLocked) hints.push({ key: 'Esc', label: t.controls.cursor });
+  return hints;
+}
+
+/** 設定メニューの「操作方法」。撤去する案内板の受け皿（§9b-5 / §12a） */
+function controlsHelp(t: Dictionary): ControlsHelp {
+  const c = t.controls;
+  const rows: Array<[string, string]> = app.device.isTouch
+    ? [
+        [c.move, c.touchMove],
+        [c.look, c.touchLook],
+        [c.interact, c.actionKeys],
+      ]
+    : [
+        [c.move, c.moveKeys],
+        [c.look, c.lookKeys],
+        [c.interact, c.actionKeys],
+      ];
+  return { heading: c.heading, rows };
 }
 
 /** 文脈ボタン。ヒントボタンは HintPanel が右下に常設するのでここには積まない。 */

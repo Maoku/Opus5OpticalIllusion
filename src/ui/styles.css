@@ -251,6 +251,34 @@ body {
   background: #6fd2b0;
 }
 
+/* 操作方法（§9b-5）。3D 空間の案内板を撤去した後の受け皿 */
+.settings-help {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgb(255 255 255 / 9%);
+}
+
+.settings-help-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  color: #cfd3db;
+}
+
+.settings-help-row {
+  margin: 0 0 0.34rem;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: #a9afba;
+}
+
+.settings-help-term {
+  display: inline-block;
+  min-width: 3.4em;
+  margin-right: 0.6em;
+  color: #6fd2b0;
+}
+
 .settings-close {
   display: block;
   width: 100%;
@@ -328,6 +356,43 @@ body {
 
 .hud-prompt.is-visible {
   opacity: 1;
+}
+
+/*
+  常設のキーガイド（§9b-1）。
+  ポインタロック中はカーソルが消えるので、UI がキーで操作できることを
+  画面に出し続ける。読めるが主張しない濃度に抑える。
+*/
+.hud-keys {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 10px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+  justify-content: center;
+  max-width: 92vw;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: rgb(214 218 226 / 62%);
+  text-shadow: 0 1px 3px rgb(0 0 0 / 70%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.hud-keys.is-visible {
+  opacity: 1;
+}
+
+.hud-key kbd {
+  margin-right: 0.4em;
+  padding: 0.05em 0.4em;
+  font: inherit;
+  color: #e8eaf0;
+  background: rgb(8 10 14 / 62%);
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 4px;
 }
 
 /* -------------------------------------------------------- hint panel */

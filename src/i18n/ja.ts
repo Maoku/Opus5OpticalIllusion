@@ -44,6 +44,29 @@ export const ja = {
     padLookLabel: '視点: 画面右側をドラッグ',
     brightnessNotice: '画面の明るさの自動調整をお切りください。',
   },
+  /**
+   * 操作の案内（§9b）。画面下端の常設キーガイドと、設定メニューの
+   * 「操作方法」セクションの両方がここを引く。
+   */
+  controls: {
+    heading: '操作方法',
+    move: '移動',
+    look: '視点',
+    interact: '決定',
+    hint: 'ヒント',
+    reveal: 'タネあかし',
+    list: '展示一覧',
+    settings: '設定',
+    cursor: 'カーソルを出す',
+    leaveView: '視点を離れる',
+    close: '閉じる',
+    moveKeys: 'W A S D ／ 矢印キー（Shift で早歩き）',
+    lookKeys: 'マウス。画面をクリックすると視点操作、Esc でカーソルが戻ります',
+    actionKeys: 'F 決定 ／ H ヒント ／ R タネあかし ／ Tab 展示一覧 ／ O 設定',
+    touchMove: '画面の左半分をドラッグ',
+    touchLook: '画面の右半分をドラッグ',
+    clickToLook: 'クリックすると視点操作に戻ります',
+  },
   rooms: {
     entrance: 'エントランス',
     plane: '平面のだまし絵',

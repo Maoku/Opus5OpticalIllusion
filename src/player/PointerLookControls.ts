@@ -6,6 +6,7 @@
  */
 export class PointerLookControls {
   #locked = false;
+  #justReleased = false;
   #enabled = true;
   #dx = 0;
   #dy = 0;
@@ -33,7 +34,12 @@ export class PointerLookControls {
       }
     };
     const onLockChange = (): void => {
-      this.#locked = document.pointerLockElement === element;
+      const locked = document.pointerLockElement === element;
+      // Chrome ではロック中の Esc がブラウザに吸われるが、ページにも届く
+      // 環境がある。届いた場合に「ロック解除」と「ヒントを閉じる」が
+      // 一度に走らないよう、解除直後の cancel を捨てる材料を残す（§9b-4）。
+      if (this.#locked && !locked) this.#justReleased = true;
+      this.#locked = locked;
     };
 
     element.addEventListener('pointerdown', onPointerDown);
@@ -56,6 +62,13 @@ export class PointerLookControls {
   set enabled(v: boolean) {
     this.#enabled = v;
     if (!v) this.exit();
+  }
+
+  /** 前回の確認以降にロックが外れたか。1 回読むと下りる。 */
+  consumeJustReleased(): boolean {
+    const released = this.#justReleased;
+    this.#justReleased = false;
+    return released;
   }
 
   /** ロックを試みる。成功見込みがあれば true */

@@ -24,6 +24,12 @@ export interface SettingsLabels {
   language: string;
 }
 
+/** 設定メニューに常設する「操作方法」（§9b-5）。案内板の受け皿。 */
+export interface ControlsHelp {
+  heading: string;
+  rows: Array<[label: string, value: string]>;
+}
+
 type Row = { el: HTMLElement; sync: (m: SettingsModel) => void };
 
 /** FOV / 感度 / Y軸反転 / ヘッドボブ / 画質 の設定パネル（Phase 3 DoD） */
@@ -35,6 +41,7 @@ export class SettingsMenu {
   readonly #closeBtn: HTMLButtonElement;
   #open = false;
   #onCloseFocus: HTMLElement | null = null;
+  #help!: HTMLElement;
 
   constructor(
     parent: HTMLElement,
@@ -67,6 +74,10 @@ export class SettingsMenu {
       this.#body.appendChild(this.#labelled(labels.language, languageControl));
     }
     this.#buildRows();
+    // 操作方法は設定のいちばん下。3D 空間の案内板を撤去した後もここから読める
+    this.#help = document.createElement('section');
+    this.#help.className = 'settings-help';
+    this.#body.appendChild(this.#help);
     this.setLabels(labels);
     this.#sync();
 
@@ -93,6 +104,23 @@ export class SettingsMenu {
               ? labels.qualityMid
               : labels.qualityHigh;
     }
+  }
+
+  /** 操作方法セクションの中身。言語切替のたびに呼ばれる。 */
+  setControlsHelp(help: ControlsHelp): void {
+    const heading = document.createElement('h3');
+    heading.className = 'settings-help-heading';
+    heading.textContent = help.heading;
+    const rows = help.rows.map(([label, value]) => {
+      const row = document.createElement('p');
+      row.className = 'settings-help-row';
+      const term = document.createElement('span');
+      term.className = 'settings-help-term';
+      term.textContent = label;
+      row.append(term, document.createTextNode(value));
+      return row;
+    });
+    this.#help.replaceChildren(heading, ...rows);
   }
 
   open(returnFocusTo?: HTMLElement): void {
