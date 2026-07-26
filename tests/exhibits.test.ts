@@ -56,7 +56,7 @@ function makeHarness(): Harness {
 function shrinkingZone(overrides: Partial<ExhibitDefinition> = {}): ExhibitDefinition {
   return {
     id: 'shrink',
-    textKey: 'shrink',
+    textKey: 'shrinkingRoom',
     room: 'opus',
     kind: 'zone',
     position: { x: 0, y: 0, z: -10 },
@@ -87,7 +87,7 @@ function shrinkingZone(overrides: Partial<ExhibitDefinition> = {}): ExhibitDefin
 function simpleObject(id: string, x: number, z: number): ExhibitDefinition {
   return {
     id,
-    textKey: id,
+    textKey: 'neckerCube',
     room: 'impossible',
     kind: 'object',
     position: { x, y: 0, z },
@@ -257,6 +257,10 @@ describe('ViewpointController', () => {
     expect(h.host.camera.position.y).toBeCloseTo(1.6, 5);
     expect(h.host.camera.position.z).toBeCloseTo(-5, 5);
     expect(h.host.camera.fov).toBeCloseTo(55, 5);
+    // 視線が lookAt を向いていること（Object3D.lookAt の向き規則を取り違えない）
+    const forward = new THREE.Vector3();
+    h.host.camera.getWorldDirection(forward);
+    expect(forward.z).toBeLessThan(-0.9);
   });
 
   it('returns to the player pose and unfreezes on exit', async () => {

@@ -3,12 +3,14 @@ import type { ExhibitDefinition } from './types';
 
 /**
  * 全展示の登録テーブル。
- * Phase 6a 以降でここに本物の展示を積んでいく。
+ *
+ * 現在は Phase 4 のダミー2点。Phase 6a でカフェウォールとネッカーキューブに
+ * 差し替えるため、textKey だけ先に本番のものを指している。
  */
 export const EXHIBITS: readonly ExhibitDefinition[] = [
   {
     id: 'dummyA',
-    textKey: 'dummyA',
+    textKey: 'cafeWall',
     room: 'impossible',
     kind: 'object',
     position: { x: -5, y: 0, z: -8 },
@@ -28,7 +30,7 @@ export const EXHIBITS: readonly ExhibitDefinition[] = [
   },
   {
     id: 'dummyB',
-    textKey: 'dummyB',
+    textKey: 'neckerCube',
     room: 'impossible',
     kind: 'object',
     position: { x: 5, y: 0, z: -8 },

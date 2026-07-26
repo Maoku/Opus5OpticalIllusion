@@ -21,6 +21,7 @@
     "@types/three": "^0.185.1",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
+    "happy-dom": "^20.11.1",
     "prettier": "^3.9.6",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.65.0",

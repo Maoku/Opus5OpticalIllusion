@@ -262,17 +262,19 @@ export class ViewpointController {
 
 // ------------------------------------------------------------------ helpers
 
-const TMP_OBJECT = new THREE.Object3D();
+// Object3D.lookAt は非カメラだと「+Z を対象へ向ける」逆向きの規則になる。
+// 視線の計算に使うので、必ずカメラを temp に使うこと。
+const TMP_CAMERA = new THREE.PerspectiveCamera();
 
 function makePose(): Pose {
   return { position: new THREE.Vector3(), quaternion: new THREE.Quaternion(), fov: 70 };
 }
 
 export function poseLookingAt(eye: THREE.Vector3, lookAt: THREE.Vector3, fov: number): Pose {
-  TMP_OBJECT.position.copy(eye);
-  TMP_OBJECT.up.set(0, 1, 0);
-  TMP_OBJECT.lookAt(lookAt);
-  return { position: eye.clone(), quaternion: TMP_OBJECT.quaternion.clone(), fov };
+  TMP_CAMERA.position.copy(eye);
+  TMP_CAMERA.up.set(0, 1, 0);
+  TMP_CAMERA.lookAt(lookAt);
+  return { position: eye.clone(), quaternion: TMP_CAMERA.quaternion.clone(), fov };
 }
 
 function poseFromSpot(spot: ViewSpot): Pose {

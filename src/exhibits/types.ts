@@ -4,6 +4,7 @@ import type { QualityLevel } from '../core/Quality';
 import type { RoomId } from '../data/layout';
 import type { PlayerOverrideHandle } from '../player/PlayerController';
 import type { Lighting } from '../world/Lighting';
+import type { ExhibitTextKey } from '../i18n';
 
 export type ExhibitId = string;
 export type { RoomId };
@@ -67,8 +68,8 @@ export interface HintContent {
   glyphGloss?: string;
 }
 
-/** Phase 5 で `keyof Dictionary['exhibits']` に絞り込む */
-export type ExhibitTextKey = string;
+/** 辞書に存在しないキーはコンパイルエラーになる（§5.2） */
+export type { ExhibitTextKey };
 
 export interface ExhibitDefinition {
   id: ExhibitId;
