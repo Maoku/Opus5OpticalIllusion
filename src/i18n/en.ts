@@ -191,9 +191,9 @@ export const en: Dictionary = {
     ponzoCorridor: {
       title: 'Ponzo illusion',
       appearance:
-        'Two bars lie in a corridor that narrows into the distance. The far bar looks distinctly longer. They are the same.',
+        'Two bars lie in a corridor that narrows into the distance. The far bar looks distinctly longer. The two take up exactly the same amount of your visual field.',
       explanation:
-        'Converging lines are a depth cue. If something further away casts the same size on the retina, it must really be larger — and the visual system corrects accordingly. That correction, size constancy, is why distant people do not look like dolls. Here its reliability works against you.',
+        'Converging lines are a depth cue. If something further away casts the same size on the retina, it must really be larger — and the visual system corrects accordingly. That correction, size constancy, is why distant people do not look like dolls. Here its reliability works against you. The reveal brings the far bar forward and undoes the scaling, so you can see that the two subtended the same angle all along.',
       reference: 'Ponzo illusion. Mario Ponzo, 1911.',
       caption: 'What is further away ought to be bigger.',
     },

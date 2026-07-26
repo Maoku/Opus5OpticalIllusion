@@ -1,9 +1,17 @@
 import { amesRoom } from './amesRoom';
+import { anamorphosis } from './anamorphosis';
+import { beuchetChair } from './beuchetChair';
 import { cafeWall } from './cafeWall';
 import { checkerShadow } from './checkerShadow';
+import { ebbinghaus } from './ebbinghaus';
+import { hering } from './hering';
+import { hollowMask } from './hollowMask';
 import { muellerLyer } from './muellerLyer';
 import { neckerCube } from './neckerCube';
+import { penroseStairs } from './penroseStairs';
 import { penroseTriangle } from './penroseTriangle';
+import { peripheralDrift } from './peripheralDrift';
+import { ponzoCorridor } from './ponzoCorridor';
 import type { ExhibitDefinition } from './types';
 
 /**
@@ -13,10 +21,21 @@ import type { ExhibitDefinition } from './types';
  * Room C: 空間と身体 / Room D: Opus 棟
  */
 export const EXHIBITS: readonly ExhibitDefinition[] = [
+  // Room A — 平面のだまし絵
   cafeWall,
   muellerLyer,
   checkerShadow,
+  ebbinghaus,
+  hering,
+  peripheralDrift,
+  // Room B — あり得ない立体
   penroseTriangle,
+  penroseStairs,
   neckerCube,
+  anamorphosis,
+  // Room C — 空間と身体
   amesRoom,
+  beuchetChair,
+  hollowMask,
+  ponzoCorridor,
 ];

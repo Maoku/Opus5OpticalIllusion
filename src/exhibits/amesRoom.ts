@@ -34,7 +34,7 @@ const IDEAL = {
 const FAR_SCALE = 1.6;
 const NEAR_SCALE = 0.66;
 
-const POSITION = { x: 24, y: 0, z: -3 };
+const POSITION = { x: 18, y: 0, z: -1.5 };
 
 type V3 = THREE.Vector3;
 
