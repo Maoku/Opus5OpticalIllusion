@@ -10,6 +10,7 @@ export class LoadingScreen {
   readonly #enter: HTMLButtonElement;
   readonly #title: HTMLHeadingElement;
   readonly #intro: HTMLParagraphElement;
+  readonly #langSlot: HTMLDivElement;
   #ratio = 0;
 
   constructor(parent: HTMLElement) {
@@ -17,6 +18,7 @@ export class LoadingScreen {
     this.el.className = 'loading-screen';
     this.el.innerHTML = `
       <div class="loading-inner">
+        <div class="loading-lang"></div>
         <h1 class="loading-title">Optical Illusion Museum</h1>
         <p class="loading-intro"></p>
         <div class="loading-bar"><div class="loading-bar-fill"></div></div>
@@ -28,7 +30,18 @@ export class LoadingScreen {
     this.#enter = this.el.querySelector('.loading-enter')!;
     this.#title = this.el.querySelector('.loading-title')!;
     this.#intro = this.el.querySelector('.loading-intro')!;
+    this.#langSlot = this.el.querySelector('.loading-lang')!;
     parent.appendChild(this.el);
+  }
+
+  /**
+   * 言語切替をタイトルの上に置く（§5.6）。
+   *
+   * 設定メニューは入場後しか開けないので、最初に見る画面で選べないと
+   * 「読める言語に変える」に入場が必要になる。読み込み中から押せる。
+   */
+  setLanguageControl(el: HTMLElement): void {
+    this.#langSlot.appendChild(el);
   }
 
   /**
@@ -43,6 +56,11 @@ export class LoadingScreen {
     this.#intro.textContent = body;
   }
 
+  /** 入場ボタンの文言。ボタンが出た後の言語切替にも追随させる */
+  setEnterLabel(label: string): void {
+    this.#enter.textContent = label;
+  }
+
   setProgress(ratio: number): void {
     this.#ratio = Math.max(this.#ratio, Math.min(1, Math.max(0, ratio)));
     this.#bar.style.transform = `scaleX(${this.#ratio})`;
@@ -52,7 +70,7 @@ export class LoadingScreen {
   /** 読み込み完了。入場ボタンを出し、押されたら解決する Promise を返す。 */
   ready(enterLabel: string): Promise<void> {
     this.setProgress(1);
-    this.#enter.textContent = enterLabel;
+    this.setEnterLabel(enterLabel);
     this.#enter.hidden = false;
     this.#enter.focus();
     return new Promise((resolve) => {

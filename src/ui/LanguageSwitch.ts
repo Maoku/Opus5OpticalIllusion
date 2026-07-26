@@ -8,6 +8,7 @@ export class LanguageSwitch {
   constructor(onSelect: (locale: Locale) => void) {
     this.el = document.createElement('div');
     this.el.className = 'settings-choice language-switch';
+    this.el.setAttribute('role', 'group');
     for (const locale of LOCALES) {
       const button = document.createElement('button');
       button.type = 'button';
@@ -17,6 +18,14 @@ export class LanguageSwitch {
       this.el.appendChild(button);
       this.#buttons.set(locale, button);
     }
+  }
+
+  /**
+   * 見出しを持たない場所（タイトル画面）に置くとき用のラベル。
+   * 設定メニュー内では行ラベルが役目を果たすので呼ばなくてよい。
+   */
+  setLabel(label: string): void {
+    this.el.setAttribute('aria-label', label);
   }
 
   setLocale(locale: Locale): void {

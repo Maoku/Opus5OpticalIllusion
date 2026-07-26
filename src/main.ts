@@ -93,6 +93,10 @@ const exhibitList = new ExhibitList(overlay, i18n.t, {
 });
 const languageSwitch = new LanguageSwitch((locale) => void i18n.setLocale(locale));
 const settingsMenu = new SettingsMenu(overlay, settings, i18n.t.settings, languageSwitch.el);
+// タイトル画面の言語切替（§5.6）。同じ DOM は二か所に置けないので実体を別に持つ。
+// 設定メニューは入場後しか開けないため、最初の画面でも選べるようにする。
+const titleLanguageSwitch = new LanguageSwitch((locale) => void i18n.setLocale(locale));
+loading.setLanguageControl(titleLanguageSwitch.el);
 const orientationGate = new OrientationGate(overlay, i18n.t);
 orientationGate.setEnabled(app.device.isMobileLike);
 
@@ -119,12 +123,16 @@ i18n.subscribe((t: Dictionary, locale: Locale) => {
   settingsMenu.setLabels(t.settings);
   orientationGate.setDictionary(t);
   languageSwitch.setLocale(locale);
+  titleLanguageSwitch.setLocale(locale);
+  titleLanguageSwitch.setLabel(t.settings.language);
   settingsMenu.setControlsHelp(controlsHelp(t));
   input.touch?.pad.setLabels(t.ui.padMoveLabel, t.ui.padLookLabel);
   hud.setRoomName(museum.currentArea ? t.rooms[museum.currentArea.room] : null);
   // ワールド内の 3D テキストを作り直す（§5.4）
   signage.setDictionary(t);
   loading.setIntro(t.ui.entranceTitle, t.ui.entranceBody);
+  // 入場ボタンが出た後に切り替えられても文言を残さない
+  loading.setEnterLabel(t.meta.enter);
   exhibits.setLocaleContent(contentFor);
   const focused = exhibits.focused;
   focusedTitle = focused ? contentFor(focused).title : null;
