@@ -1,4 +1,4 @@
-# GPT-5.6 Sol Optical Illusion Museum
+# Optical Illusion Museum
 
 ブラウザ上で動作する 3Dシーンで作られたミュージアム
 
