@@ -29,6 +29,20 @@ const MOVE_KEYS: Record<string, [number, number]> = {
   ArrowRight: [1, 0],
 };
 
+/**
+ * UI 側にフォーカスがあるか。
+ * ここが true の間はゲーム側のキー割り当てを止め、ブラウザ既定の
+ * フォーカス移動と活性化に任せる。
+ */
+function isTextualFocus(): boolean {
+  const active = document.activeElement;
+  if (!active || active === document.body) return false;
+  const tag = active.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  if (tag === 'BUTTON') return true;
+  return !!active.closest('[role="dialog"]');
+}
+
 /** ピッチのクランプ（±85°） */
 export const PITCH_LIMIT = (85 * Math.PI) / 180;
 
@@ -48,7 +62,13 @@ export class KeyboardMouseSource implements InputSource {
 
     const onKeyDown = (e: KeyboardEvent): void => {
       if (e.repeat) return;
-      // Tab は既定のフォーカス移動を潰す（展示一覧に割り当てているため）
+      // §8c: キーボードだけで全操作できること。
+      // パネルやダイアログにフォーカスがあるときは Tab を奪わない。
+      // 奪うとフォーカス移動が死に、キーボードだけの利用者が閉じ込められる。
+      if (isTextualFocus()) {
+        if (e.code === 'Escape') this.#pressed.add('cancel');
+        return;
+      }
       if (e.code === 'Tab') e.preventDefault();
       this.#held.add(e.code);
       const action = ACTION_KEYS[e.code];

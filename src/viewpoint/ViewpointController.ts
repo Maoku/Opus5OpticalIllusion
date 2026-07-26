@@ -48,6 +48,9 @@ export class ViewpointController {
   #microPitch = 0;
   /** reveal 演出が一時的に上書きするポーズ（orbit / topDown） */
   #revealPose: Pose | null = null;
+  #revealQueue: Array<{ pose: Pose | null; duration: number; hold: number }> = [];
+  #pendingHold = 0;
+  #hold = 0;
   #ortho: THREE.OrthographicCamera;
   #reducedMotion = false;
 
@@ -128,8 +131,25 @@ export class ViewpointController {
     this.#to = playerPose(this.player, this.app.camera.fov);
     this.#t = 0;
     this.#revealPose = null;
+    this.#revealQueue = [];
+    this.#hold = 0;
+    this.#pendingHold = 0;
     this.#useOrtho(false);
     if (spot) this.events.emit('released', spot);
+  }
+
+  /**
+   * §8c: モーション低減時の「段階送り」。
+   * 連続したスイープの代わりに、途中のポーズで一度止めてから最終ポーズへ移る。
+   * 前庭感覚との齟齬が出る長い回転を避けつつ、中間状態（＝破綻が見える角度）は残す。
+   */
+  setRevealSequence(steps: Array<{ pose: Pose | null; duration: number; hold: number }>): void {
+    const [first, ...rest] = steps;
+    if (!first) return;
+    this.#revealQueue = rest;
+    this.#hold = 0;
+    this.setRevealPose(first.pose, first.duration);
+    this.#pendingHold = first.hold;
   }
 
   /**
@@ -146,8 +166,25 @@ export class ViewpointController {
     this.#state = 'entering';
   }
 
+  /** 段階送りの途中で止まっているか */
+  get holding(): boolean {
+    return this.#hold > 0;
+  }
+
   update(dt: number, input: InputState): void {
     this.#updateCandidate(dt, input);
+
+    // 段階送りの「ため」。時間が来たら次のポーズへ進む
+    if (this.#hold > 0) {
+      this.#hold -= dt;
+      if (this.#hold <= 0) {
+        const next = this.#revealQueue.shift();
+        if (next) {
+          this.setRevealPose(next.pose, next.duration);
+          this.#pendingHold = next.hold;
+        }
+      }
+    }
 
     switch (this.#state) {
       case 'idle':
@@ -164,7 +201,13 @@ export class ViewpointController {
             this.player.frozen = false;
           } else {
             this.#state = 'locked';
-            if (!this.#revealPose) this.#useOrtho(this.#current?.definition.projection === 'orthographic');
+            if (this.#pendingHold > 0) {
+              this.#hold = this.#pendingHold;
+              this.#pendingHold = 0;
+            }
+            if (!this.#revealPose) {
+              this.#useOrtho(this.#current?.definition.projection === 'orthographic');
+            }
           }
         }
         break;

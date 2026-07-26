@@ -331,3 +331,45 @@ describe('ViewpointController', () => {
     expect(h.host.renderCamera).toBe(h.host.camera);
   });
 });
+
+// §8c: モーション低減時のふるまい
+describe('reduced motion', () => {
+  it('steps the orbit reveal instead of sweeping it', async () => {
+    const h = makeHarness();
+    const def = simpleObject('penrose', 0, -8);
+    def.reveal = 'orbit';
+    await h.exhibits.add(def);
+    h.exhibits.reducedMotion = true;
+    h.viewpoint.reducedMotion = true;
+    h.player.spawn(0, -5, 0);
+    h.step(0.1);
+    h.viewpoint.enter(h.viewpoint.candidate!);
+    h.step(0.5);
+
+    h.exhibits.setRevealed('penrose', true);
+    // 第1段が着地したあと「ため」に入る
+    h.step(0.4);
+    expect(h.viewpoint.holding).toBe(true);
+    const midway = h.host.camera.position.clone();
+
+    // ためが明けたら第2段へ進み、最終ポーズは第1段より大きく回り込む
+    h.step(1.6);
+    expect(h.viewpoint.holding).toBe(false);
+    const final = h.host.camera.position.clone();
+    expect(final.distanceTo(midway)).toBeGreaterThan(0.5);
+  });
+
+  it('sweeps in one continuous move when motion is not reduced', async () => {
+    const h = makeHarness();
+    const def = simpleObject('penrose', 0, -8);
+    def.reveal = 'orbit';
+    await h.exhibits.add(def);
+    h.player.spawn(0, -5, 0);
+    h.step(0.1);
+    h.viewpoint.enter(h.viewpoint.candidate!);
+    h.step(0.5);
+    h.exhibits.setRevealed('penrose', true);
+    h.step(0.5);
+    expect(h.viewpoint.holding).toBe(false);
+  });
+});

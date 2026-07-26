@@ -261,13 +261,25 @@ export class ExhibitManager implements Updatable {
       // 正解視点から 72° 回り込む。破綻（桁の切れ目）が見える角度。
       const offset = spot.eye.clone().sub(centre);
       const radius = offset.length();
-      const angle = Math.atan2(offset.x, offset.z) + THREE.MathUtils.degToRad(72);
-      const eye = new THREE.Vector3(
-        centre.x + Math.sin(angle) * radius,
-        spot.eye.y + radius * 0.14,
-        centre.z + Math.cos(angle) * radius,
-      );
-      this.viewpoint.setRevealPose(poseLookingAt(eye, centre, spot.definition.fov), 2.4);
+      const base = Math.atan2(offset.x, offset.z);
+      const poseAt = (degrees: number): ReturnType<typeof poseLookingAt> => {
+        const angle = base + THREE.MathUtils.degToRad(degrees);
+        const eye = new THREE.Vector3(
+          centre.x + Math.sin(angle) * radius,
+          spot.eye.y + radius * 0.14 * (degrees / 72),
+          centre.z + Math.cos(angle) * radius,
+        );
+        return poseLookingAt(eye, centre, spot.definition.fov);
+      };
+      if (this.flags.reducedMotion) {
+        // §8c: 段階送り。長いスイープの代わりに 2 段で送る
+        this.viewpoint.setRevealSequence([
+          { pose: poseAt(36), duration: 0.25, hold: 0.8 },
+          { pose: poseAt(72), duration: 0.25, hold: 0 },
+        ]);
+      } else {
+        this.viewpoint.setRevealPose(poseAt(72), 2.4);
+      }
       return;
     }
 
