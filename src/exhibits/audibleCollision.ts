@@ -16,7 +16,7 @@ import type { BuildContext, ExhibitDefinition, ExhibitInstance } from './types';
 
 const TABLE_HEIGHT = 0.8;
 const TRACK = 0.62;
-const PERIOD = 2.6;
+const PERIOD = 1.3;
 const BALL_RADIUS = 0.075;
 const VIEW_DISTANCE = 2.0;
 const POSITION = { x: 7, y: 0, z: -24 };

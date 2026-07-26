@@ -232,13 +232,11 @@ function frame(dt: number, elapsed: number): void {
   player.update(dt, state);
 
   // --- ViewSpot ---------------------------------------------------------
-  if (
-    !anyModalOpen() &&
-    state.pressed.has('interact') &&
-    !viewpoint.isEngaged &&
-    viewpoint.candidate
-  ) {
-    viewpoint.enter(viewpoint.candidate);
+  // 決定は「ViewSpot へ入る」が最優先。入らなかったぶんだけ仕掛けへ回す。
+  const wantsInteract = !anyModalOpen() && state.pressed.has('interact');
+  const spotToEnter = wantsInteract && !viewpoint.isEngaged ? viewpoint.candidate : null;
+  if (spotToEnter) {
+    viewpoint.enter(spotToEnter);
     app.device.vibrate(15);
     audio.ui(660);
   }
@@ -246,7 +244,10 @@ function frame(dt: number, elapsed: number): void {
   exhibits.update(dt, elapsed);
 
   // --- ワールド内の仕掛け（D4 の音声ボタンなど）---------------------------
-  if (!anyModalOpen() && state.pressed.has('interact') && !viewpoint.candidate) {
+  // ロック中も押せること。ロック位置は ViewSpot の反応半径の中なので
+  // candidate は残り続ける。それを弾く条件にすると台上のボタンへ永久に
+  // 届かない（プロンプトだけ出て何も起きない）。
+  if (wantsInteract && !spotToEnter) {
     exhibits.interact(exhibits.focused ?? exhibits.pickAt(state));
   }
 
