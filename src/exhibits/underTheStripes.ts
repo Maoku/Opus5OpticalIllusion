@@ -21,7 +21,14 @@ const RADIUS = 0.16;
 const SPACING = 0.44;
 const TOP_HEIGHT = 0.92;
 const VIEW_DISTANCE = 3.3;
-const POSITION = { x: -7, y: 0, z: -24 };
+/**
+ * Opus 棟の暗いアルコーブ（§12c-2）。
+ *
+ * 実光源のゴボ投影による同化が成立条件なので、環境光を上げると効果が落ちる。
+ * 棟の本体を歩ける明るさにしたぶん、この展示だけを暗い小部屋へ集めた。
+ * アルコーブは x∈[−14,−4] / z∈[−28,−19]、入口は東壁の z∈[−24,−20]。
+ */
+const POSITION = { x: -8.5, y: 0, z: -25.5 };
 
 /** 帯ごとの縞の色。白との細かい交替が同化を起こす */
 const STRIPE_COLORS = ['#ff7a2f', '#ff4fa3', '#3ad46a', '#39c9ff', '#ffd23a', '#6a6cff'];

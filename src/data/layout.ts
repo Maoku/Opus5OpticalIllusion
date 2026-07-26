@@ -22,7 +22,9 @@ export type AreaId =
   | 'linkAB'
   | 'linkBC'
   | 'corridorD'
-  | 'roomD';
+  | 'roomD'
+  | 'roomDNorth'
+  | 'roomDAlcove';
 
 /** 展示が属する「部屋」。通路はどれかの部屋に含める。 */
 export type RoomId = 'entrance' | 'plane' | 'impossible' | 'space' | 'opus';
@@ -40,7 +42,7 @@ export interface AreaDefinition {
   palette: PaletteId;
 }
 
-export type PaletteId = 'hall' | 'gallery' | 'corridor' | 'opus';
+export type PaletteId = 'hall' | 'gallery' | 'corridor' | 'opus' | 'opusBright';
 
 export interface Palette {
   floor: number;
@@ -54,8 +56,16 @@ export const PALETTES: Record<PaletteId, Palette> = {
   // ギャラリーの壁は「白すぎない」中間明度。明度系の錯視の背景として重要。
   gallery: { floor: 0x3b3a37, wall: 0xc9c6bf, ceiling: 0xe6e4df, baseboard: 0x4a4844 },
   corridor: { floor: 0x33353b, wall: 0xb4b2ac, ceiling: 0xd8d6d1, baseboard: 0x42444a },
-  // Opus 棟は暗い。投影光・影・発光を読ませたいので周囲を落とす。
+  // Opus 棟のアルコーブ。暗さが成立条件の展示（D6）だけをここに集める。
   opus: { floor: 0x14151a, wall: 0x24252c, ceiling: 0x101116, baseboard: 0x1a1b21 },
+  /*
+   * Opus 棟の本体（§12c）。歩ける明るさを確保する。
+   * 以前は棟ぜんぶが opus の暗さで、視認性が低く歩けたものではなかった。
+   *
+   * 床の反射率がいちばん効く。照明を上げるだけでは壁ばかりが明るくなるので、
+   * 床・幅木の側も持ち上げてある。ギャラリーよりは十分暗いまま。
+   */
+  opusBright: { floor: 0x33353d, wall: 0x44464f, ceiling: 0x22242a, baseboard: 0x2f313a },
 };
 
 /** 通路の高さ。ドア開口の高さもこれに揃えると、通路側に無駄な壁が残らない。 */
@@ -115,8 +125,44 @@ export const AREAS: readonly AreaDefinition[] = [
     height: DOOR_HEIGHT,
     palette: 'corridor',
   },
-  // 大広間。D1「二つの真実」を最奥に置くため天井を高く取る。
-  { id: 'roomD', room: 'opus', min: [-14, -41], max: [14, -19], height: 6.5, palette: 'opus' },
+  /*
+   * Opus 棟（§12c）。「明るい本体 + 暗いアルコーブ」の 3 矩形に分けてある。
+   * 以前は棟ぜんぶが opus の暗さで、歩行時の視認性が低かった。
+   * 暗さが成立条件の展示（D6「縞の下の嘘」）だけをアルコーブへ集める。
+   *
+   *        corridorD
+   *            │
+   *   ┌────────┴──────────┐
+   *   │ alcove │ roomDNorth│  z ∈ [-28, -19]
+   *   ├────────┴──────────┤
+   *   │      roomD        │  z ∈ [-41, -28]（大広間。天井を高く取る）
+   *   └───────────────────┘
+   */
+  {
+    id: 'roomD',
+    room: 'opus',
+    min: [-14, -41],
+    max: [14, -28],
+    height: 6.5,
+    palette: 'opusBright',
+  },
+  {
+    id: 'roomDNorth',
+    room: 'opus',
+    min: [-4, -28],
+    max: [14, -19],
+    height: 6.5,
+    palette: 'opusBright',
+  },
+  // 明順応の落差を作るため、天井も低く抑える
+  {
+    id: 'roomDAlcove',
+    room: 'opus',
+    min: [-14, -28],
+    max: [-4, -19],
+    height: 3.6,
+    palette: 'opus',
+  },
 ];
 
 export interface Doorway {
@@ -124,8 +170,6 @@ export interface Doorway {
   min: readonly [number, number];
   max: readonly [number, number];
   height: number;
-  /** Room D の扉。Room A〜C を一定数見るまで閉じている（Phase 6c） */
-  locked?: boolean;
 }
 
 export const DOORWAYS: readonly Doorway[] = [
@@ -139,9 +183,15 @@ export const DOORWAYS: readonly Doorway[] = [
   // roomB <-> linkBC <-> roomC
   { min: [9.5, -6], max: [10.5, -2], height: DOOR_HEIGHT },
   { min: [13.5, -6], max: [14.5, -2], height: DOOR_HEIGHT },
-  // roomB <-> corridorD <-> roomD（Opus 棟の扉）
-  { min: [-3, -13.5], max: [3, -12.5], height: DOOR_HEIGHT, locked: true },
+  // roomB <-> corridorD <-> roomDNorth
+  // §12b: ここには施錠扉があった。扉という概念ごと削除し、他の 7 箇所と
+  // まったく同じ素通しの開口にしてある。Opus 棟は初回から入れる。
+  { min: [-3, -13.5], max: [3, -12.5], height: DOOR_HEIGHT },
   { min: [-3, -19.5], max: [3, -18.5], height: DOOR_HEIGHT },
+  // roomDNorth <-> roomD（大広間へ。縮んでいく部屋の入口を含む幅を取る）
+  { min: [-3, -28.5], max: [5, -27.5], height: DOOR_HEIGHT },
+  // roomDNorth <-> roomDAlcove（暗い小部屋への唯一の入口）
+  { min: [-4.5, -24], max: [-3.5, -20], height: DOOR_HEIGHT },
 ];
 
 /** プレイヤーの初期位置（エントランス奥、通路を向いて立つ） */

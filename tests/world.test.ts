@@ -1,13 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import {
-  buildDoorPieces,
-  buildWallPieces,
-  subtractIntervals,
-  type WallPiece,
-} from '../src/world/wallGeometry';
-import { Collision } from '../src/world/Collision';
+import { buildWallPieces, subtractIntervals } from '../src/world/wallGeometry';
 import { AREAS, DOORWAYS, DOOR_HEIGHT, areaAt, areaById } from '../src/data/layout';
+import { museumCollision } from './helpers/museum';
 
 describe('subtractIntervals', () => {
   it('returns the whole range when there are no cuts', () => {
@@ -82,22 +77,48 @@ describe('buildWallPieces', () => {
   });
 });
 
-describe('buildDoorPieces', () => {
-  it('emits exactly one slab per locked doorway', () => {
-    const doors = buildDoorPieces(DOORWAYS);
-    const locked = DOORWAYS.filter((d) => d.locked);
-    expect(doors).toHaveLength(locked.length);
-    expect(doors.every((d) => d.door && d.blocking)).toBe(true);
+/**
+ * §12b: 扉という概念ごと削除した。Opus 棟は初回から素通しで入れる。
+ * 施錠を前提にしたテストを、到達可能性の検証に置き換えている。
+ */
+describe('the Opus wing is open from the start', () => {
+  it('walks from Room B to the Opus hall without hitting a wall', () => {
+    const collision = museumCollision();
+    const radius = 0.35;
+    // roomB の南口 → corridorD → roomDNorth → 大広間
+    const waypoints: Array<[number, number]> = [
+      [0, -11],
+      [0, -14],
+      [0, -18],
+      [0, -21],
+      [0, -26],
+      [0, -30],
+      [0, -34],
+    ];
+    let at = new THREE.Vector2(waypoints[0]![0], waypoints[0]![1]);
+    for (const [x, z] of waypoints.slice(1)) {
+      at = collision.move(at, new THREE.Vector2(x, z), radius);
+      expect([at.x, at.y], `blocked before (${x}, ${z})`).toEqual([x, z]);
+    }
+    expect(areaAt(at.x, at.y)?.id).toBe('roomD');
   });
 
-  it('orients the slab across the thin axis of the opening', () => {
-    const doors = buildDoorPieces([
-      { min: [-3, -13.5], max: [3, -12.5], height: 3.2, locked: true },
-    ]);
-    expect(doors[0]!.axis).toBe('z');
-    expect(doors[0]!.at).toBeCloseTo(-13);
-    expect(doors[0]!.from).toBeCloseTo(-3);
-    expect(doors[0]!.to).toBeCloseTo(3);
+  it('leaves the dark alcove reachable only through its single opening', () => {
+    const collision = museumCollision();
+    const radius = 0.35;
+    // roomDNorth から西へ入る（開口は x = -4, z ∈ [-24, -20]）
+    const inside = collision.move(new THREE.Vector2(-2, -22), new THREE.Vector2(-7, -22), radius);
+    expect(areaAt(inside.x, inside.y)?.id).toBe('roomDAlcove');
+    // 大広間との境（z = -28）は塞がっている
+    const blocked = collision.move(new THREE.Vector2(-9, -26), new THREE.Vector2(-9, -31), radius);
+    expect(blocked.y).toBeGreaterThan(-28);
+  });
+
+  it('has no doorway left marked as a door', () => {
+    // Doorway から locked を消したので、型の上でも扉は存在しない
+    for (const d of DOORWAYS) {
+      expect(Object.keys(d).sort()).toEqual(['height', 'max', 'min']);
+    }
   });
 });
 
@@ -124,18 +145,6 @@ describe('layout', () => {
 });
 
 // --------------------------------------------------------------- collision
-
-function museumCollision(): Collision {
-  const collision = new Collision();
-  const pieces: WallPiece[] = [];
-  for (const area of AREAS) pieces.push(...buildWallPieces(area, DOORWAYS));
-  for (const p of pieces) {
-    if (!p.blocking) continue;
-    if (p.axis === 'z') collision.addSegment(p.from, p.at, p.to, p.at, 0.3);
-    else collision.addSegment(p.at, p.from, p.at, p.to, 0.3);
-  }
-  return collision;
-}
 
 describe('Collision against the real layout', () => {
   const radius = 0.35;
@@ -178,13 +187,9 @@ describe('Collision against the real layout', () => {
     expect(out.y).toBeGreaterThan(12);
   });
 
-  it('reports the locked opus door as blocking, and clears it on unlock', () => {
+  // §12b: かつて施錠扉が立っていた場所。いまは素通し
+  it('leaves the old Opus door opening clear', () => {
     const collision = museumCollision();
-    for (const p of buildDoorPieces(DOORWAYS)) {
-      collision.addSegment(p.from, p.at, p.to, p.at, 0.3, 'opus-door');
-    }
-    expect(collision.isBlocked(new THREE.Vector2(0, -13), radius)).toBe(true);
-    collision.removeByTag('opus-door');
     expect(collision.isBlocked(new THREE.Vector2(0, -13), radius)).toBe(false);
   });
 

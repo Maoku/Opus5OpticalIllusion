@@ -88,7 +88,6 @@ const touchBar = new TouchActionBar(overlay, (action) => input.dispatch(action))
 touchBar.setEnabled(app.device.isTouch);
 const exhibitList = new ExhibitList(overlay, i18n.t, {
   onSelect: (record) => warpTo(record),
-  isAvailable: (record) => record.definition.room !== 'opus' || museum.opusUnlocked,
   titleOf: (record) => contentFor(record).title,
 });
 const languageSwitch = new LanguageSwitch((locale) => void i18n.setLocale(locale));
@@ -153,7 +152,11 @@ applySettings();
 
 // ------------------------------------------------------------------- wiring
 
-museum.onAreaChange((area) => hud.setRoomName(area ? i18n.t.rooms[area.room] : null));
+museum.onAreaChange((area) => {
+  hud.setRoomName(area ? i18n.t.rooms[area.room] : null);
+  // 明順応の落差を予告する（§12c-3）。アルコーブだけ極端に暗い
+  if (area?.id === 'roomDAlcove') hud.showToast(i18n.t.ui.darkRoomAhead, 4500);
+});
 exhibits.events.on('focusChanged', (record) =>
   hintPanel.setContent(record ? contentFor(record) : null, record?.definition.id ?? null),
 );
@@ -172,25 +175,6 @@ function warpTo(record: ExhibitRecord): void {
   const p = record.definition.position;
   player.warpTo(p.x, p.z + 3, Math.PI);
 }
-
-/**
- * Opus 棟の開錠（ROOM_D §4）。
- *
- * 「錯視とは絵の中にあるもの」という前提を Room A〜C で十分に固めてから、
- * それが崩される部屋に入る、という順序が効く。
- * 「見た」の定義は ViewSpot に立って鑑賞したこと。近くを通っただけでは数えない。
- */
-const OPUS_UNLOCK_COUNT = 6;
-const viewedExhibits = new Set<string>();
-
-viewpoint.events.on('locked', (spot) => {
-  const record = exhibits.records.get(spot.exhibitId);
-  if (!record || record.definition.room === 'opus') return;
-  viewedExhibits.add(spot.exhibitId);
-  if (viewedExhibits.size < OPUS_UNLOCK_COUNT || museum.opusUnlocked) return;
-  museum.unlockOpus();
-  hud.showToast(i18n.t.rooms.opus, 6000);
-});
 
 function anyModalOpen(): boolean {
   return settingsMenu.isOpen || exhibitList.isOpen;

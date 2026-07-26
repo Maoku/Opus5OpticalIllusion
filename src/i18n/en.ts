@@ -30,8 +30,7 @@ export const en: Dictionary = {
     referenceHeading: 'Name and source',
     hintHiddenNotice: 'Hints stay hidden. Look with your own eyes first.',
     warpTo: 'Go to this exhibit',
-    locked: 'Locked',
-    lockedOpus: 'The Opus Wing opens once you have seen some of the other exhibits.',
+    darkRoomAhead: 'It is dark ahead. Give your eyes a moment to adjust.',
     screenshotNotice: 'This exhibit does not survive a screenshot.',
     orientationTitle: 'Please turn your device sideways',
     orientationBody:

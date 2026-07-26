@@ -6,8 +6,6 @@ import { focusScene } from './focus';
 export interface ExhibitListOptions {
   /** 選択された展示の ViewSpot へワープする */
   onSelect(record: ExhibitRecord): void;
-  /** その展示が現在到達可能か（Opus 棟は開錠前は不可） */
-  isAvailable(record: ExhibitRecord): boolean;
   titleOf(record: ExhibitRecord): string;
 }
 
@@ -107,11 +105,8 @@ export class ExhibitList {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'exhibit-list-item';
-        const available = this.options.isAvailable(record);
-        button.disabled = !available;
-        button.textContent = available
-          ? this.options.titleOf(record)
-          : `${this.options.titleOf(record)} — ${t.ui.locked}`;
+        // §12b: 開錠制は廃止した。最初から全展示へワープできる
+        button.textContent = this.options.titleOf(record);
         button.addEventListener('click', () => {
           this.close();
           this.options.onSelect(record);

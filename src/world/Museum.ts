@@ -18,7 +18,6 @@ export class Museum implements Updatable {
   readonly #built: BuiltMuseum;
   readonly #builder: RoomBuilder;
   #currentArea: AreaDefinition | null = null;
-  #opusUnlocked = false;
   #areaListeners: Array<(area: AreaDefinition | null) => void> = [];
   /** プレイヤー位置の供給元。Phase 3 で PlayerController に差し替わる */
   #tracked: THREE.Object3D;
@@ -50,17 +49,6 @@ export class Museum implements Updatable {
       const i = this.#areaListeners.indexOf(listener);
       if (i >= 0) this.#areaListeners.splice(i, 1);
     };
-  }
-
-  get opusUnlocked(): boolean {
-    return this.#opusUnlocked;
-  }
-
-  /** Room D の開錠（Phase 6c: Room A〜C を一定数見ると呼ばれる） */
-  unlockOpus(): void {
-    if (this.#opusUnlocked) return;
-    this.#opusUnlocked = true;
-    RoomBuilder.unlock(this.#built, this.collision);
   }
 
   update(dt: number): void {

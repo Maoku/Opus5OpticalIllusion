@@ -11,8 +11,6 @@ export interface WallPiece {
   y1: number;
   /** まぐさ（開口の上）は通行を妨げない */
   blocking: boolean;
-  /** locked な開口を塞ぐ扉。開錠時に取り除く */
-  door?: boolean;
 }
 
 export interface Interval {
@@ -121,45 +119,5 @@ export function buildWallPieces(area: AreaDefinition, doorways: readonly Doorway
     }
   }
 
-  return pieces;
-}
-
-/**
- * 施錠中の開口を塞ぐ扉。
- *
- * 扉は「開口ごとに1枚」であってエリアごとではない。共有壁は両側のエリアから
- * 切られるため、buildWallPieces の中で作ると同じ場所に2枚重なってしまう。
- */
-export function buildDoorPieces(doorways: readonly Doorway[]): WallPiece[] {
-  const pieces: WallPiece[] = [];
-  for (const d of doorways) {
-    if (!d.locked) continue;
-    const spanX = d.max[0] - d.min[0];
-    const spanZ = d.max[1] - d.min[1];
-    // 薄いほうの軸が壁の法線。開口は「壁を横切る細長い AABB」として書かれている。
-    if (spanZ <= spanX) {
-      pieces.push({
-        axis: 'z',
-        at: (d.min[1] + d.max[1]) / 2,
-        from: d.min[0],
-        to: d.max[0],
-        y0: 0,
-        y1: d.height,
-        blocking: true,
-        door: true,
-      });
-    } else {
-      pieces.push({
-        axis: 'x',
-        at: (d.min[0] + d.max[0]) / 2,
-        from: d.min[1],
-        to: d.max[1],
-        y0: 0,
-        y1: d.height,
-        blocking: true,
-        door: true,
-      });
-    }
-  }
   return pieces;
 }

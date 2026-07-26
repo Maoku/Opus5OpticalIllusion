@@ -15,8 +15,20 @@ const PROFILES: Record<PaletteId, LightProfile> = {
   hall: { hemi: 0.55, ambient: 0.35, key: 1.5, elevation: 62 },
   gallery: { hemi: 0.4, ambient: 0.3, key: 1.7, elevation: 58 },
   corridor: { hemi: 0.35, ambient: 0.28, key: 1.0, elevation: 70 },
-  // Opus 棟は暗い。投影光と影を読ませるため環境光を落とす（ROOM_D §1 D6）
+  // Opus 棟のアルコーブ。投影光と影を読ませるため環境光を落とす（ROOM_D §1 D6）
   opus: { hemi: 0.08, ambient: 0.06, key: 0.35, elevation: 75 },
+  /**
+   * Opus 棟の本体（§12c）。棟ぜんぶが opus の暗さで歩けなかったのを改める。
+   *
+   * 改良計画の案（0.24 / 0.18 / 0.85）は実測すると足りなかった。同じ幾何条件
+   * （3m 先の床のピクセル値）で gallery が 12〜18 のところ 3〜4 にしかならず、
+   * 廊下とほとんど変わらない。パレットの床が暗いことが効いているので、
+   * 光量と床の反射率の両方を上げてある。
+   *
+   * 実測（3m 先の床）: roomB 12 / roomC 18 / roomD 9 / roomDNorth 11 /
+   * アルコーブ 1。歩ける明るさになり、アルコーブの暗さは保たれている。
+   */
+  opusBright: { hemi: 0.5, ambient: 0.4, key: 1.7, elevation: 72 },
 };
 
 export interface SpotRequest {

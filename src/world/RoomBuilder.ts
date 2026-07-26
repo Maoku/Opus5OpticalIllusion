@@ -12,16 +12,12 @@ import {
 } from '../data/layout';
 import { createCanvasTexture, drawNoise } from '../exhibits/common/CanvasTexture';
 import type { Collision } from './Collision';
-import { buildDoorPieces, buildWallPieces, type WallPiece } from './wallGeometry';
+import { buildWallPieces, type WallPiece } from './wallGeometry';
 
 export interface BuiltMuseum {
   group: THREE.Group;
-  /** 施錠中の Opus 棟の扉。開錠でここを消す */
-  doors: THREE.Group;
   dispose(): void;
 }
-
-const DOOR_COLLIDER_TAG = 'opus-door';
 
 /**
  * 矩形エリアの配列から、床・壁・天井・幅木のメッシュと衝突線分を生成する。
@@ -37,25 +33,13 @@ export class RoomBuilder {
   build(): BuiltMuseum {
     const group = new THREE.Group();
     group.name = 'museum';
-    const doors = new THREE.Group();
-    doors.name = 'doors';
 
     for (const area of AREAS) {
       group.add(this.#buildArea(area));
     }
 
-    for (const piece of buildDoorPieces(DOORWAYS)) {
-      const mesh = new THREE.Mesh(pieceGeometry(piece, WALL_THICKNESS), this.#doorMaterial());
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      doors.add(mesh);
-      this.#addCollider(piece, WALL_THICKNESS, DOOR_COLLIDER_TAG);
-    }
-    group.add(doors);
-
     return {
       group,
-      doors,
       dispose: () => {
         for (const t of this.#textures) t.dispose();
         for (const m of this.#materials.values()) m.dispose();
@@ -63,12 +47,6 @@ export class RoomBuilder {
         this.#materials.clear();
       },
     };
-  }
-
-  /** Room D の開錠。扉のメッシュと当たり判定を取り除く（Phase 6c） */
-  static unlock(built: BuiltMuseum, collision: Collision): void {
-    built.doors.visible = false;
-    collision.removeByTag(DOOR_COLLIDER_TAG);
   }
 
   // ------------------------------------------------------------- internals
@@ -146,12 +124,12 @@ export class RoomBuilder {
     return g;
   }
 
-  #addCollider(piece: WallPiece, thickness: number, tag?: string): void {
+  #addCollider(piece: WallPiece, thickness: number): void {
     if (!piece.blocking) return;
     if (piece.axis === 'z') {
-      this.collision.addSegment(piece.from, piece.at, piece.to, piece.at, thickness, tag);
+      this.collision.addSegment(piece.from, piece.at, piece.to, piece.at, thickness);
     } else {
-      this.collision.addSegment(piece.at, piece.from, piece.at, piece.to, thickness, tag);
+      this.collision.addSegment(piece.at, piece.from, piece.at, piece.to, thickness);
     }
   }
 
@@ -220,20 +198,6 @@ export class RoomBuilder {
           color: PALETTES[palette].baseboard,
           roughness: 0.7,
           metalness: 0.05,
-        }),
-    );
-  }
-
-  #doorMaterial(): THREE.Material {
-    return this.#material(
-      'door',
-      () =>
-        new THREE.MeshStandardMaterial({
-          color: 0x1c1e24,
-          roughness: 0.45,
-          metalness: 0.6,
-          emissive: 0x0a1a16,
-          emissiveIntensity: 0.6,
         }),
     );
   }
