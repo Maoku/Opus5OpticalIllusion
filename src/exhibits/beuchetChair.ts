@@ -34,6 +34,14 @@ const SEAT = { width: 0.46, depth: 0.46, thickness: 0.05, height: 0.45 };
 const BACK = { width: 0.46, height: 0.52, thickness: 0.05 };
 const LEG = 0.05;
 
+/** 奥の塊（1.9 倍）の半幅。人形をその脇へ寄せるのに使う */
+const FAR_HALF_WIDTH = (SEAT.width * FAR_SCALE) / 2;
+/** 等身大の人形。目盛りと数値が食い違わないよう、寸法はここから引く */
+const DOLL_BODY_R = 0.19;
+const DOLL_HEAD_R = 0.21;
+const DOLL_HEAD_Y = 1.42;
+const DOLL_HEIGHT = DOLL_HEAD_Y + DOLL_HEAD_R;
+
 function build(ctx: BuildContext): ExhibitInstance {
   const root = new THREE.Group();
   const origin = new THREE.Vector3(POSITION.x, POSITION.y, POSITION.z);
@@ -104,20 +112,54 @@ function build(ctx: BuildContext): ExhibitInstance {
   post.castShadow = true;
   root.add(post);
 
-  // --- 奥に立つ等身大（1.7m）の人形 ---------------------------------------
+  // --- 奥に立つ等身大の人形 -----------------------------------------------
+  // 奥の椅子の脚元へ寄せる（§11d-3）。1.15m 離れていた頃は椅子との比較に
+  // なっておらず、「小人に見える」ことが読み取れなかった。
   const dollMaterial = new THREE.MeshStandardMaterial({ color: 0x4a7fd4, roughness: 0.7 });
   const doll = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 0.95, 6, 12), dollMaterial);
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(DOLL_BODY_R, 0.95, 6, 12), dollMaterial);
   body.position.y = 0.7;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.21, 16, 12), dollMaterial);
-  head.position.y = 1.42;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(DOLL_HEAD_R, 16, 12), dollMaterial);
+  head.position.y = DOLL_HEAD_Y;
   doll.add(body, head);
-  doll.position.set(far.position.x + 1.15, 0, far.position.z + 0.3);
+  const dollX = far.position.x + FAR_HALF_WIDTH + DOLL_BODY_R + 0.09;
+  doll.position.set(dollX, 0, far.position.z + 0.15);
   for (const mesh of [body, head]) {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
   }
   root.add(doll);
+
+  // --- 実寸の目盛り（§11d-3） ---------------------------------------------
+  // 「椅子が巨大なのか、人が小さいのか」が切り替わる瞬間を見せる。
+  // 奥の椅子の座面は 0.855m —— 等身大の人の腰より上にある。
+  // 普通の椅子なら膝の高さなので、これだけで椅子の異常さが分かる。
+  const measureMaterial = new THREE.MeshBasicMaterial({
+    color: 0x6fd2b0,
+    transparent: true,
+    opacity: 0,
+  });
+  measureMaterial.toneMapped = false;
+  const measure = new THREE.Group();
+  measure.visible = false;
+  const RULE_X = dollX + DOLL_BODY_R + 0.08;
+  const SEAT_LEVEL = SEAT.height * FAR_SCALE;
+  const rulePieces: THREE.BufferGeometry[] = [];
+  const addRule = (w: number, h: number, x: number, y: number): void => {
+    const geometry = new THREE.BoxGeometry(w, h, 0.02);
+    rulePieces.push(geometry);
+    const mesh = new THREE.Mesh(geometry, measureMaterial);
+    mesh.position.set(x, y, doll.position.z);
+    mesh.renderOrder = 4;
+    measure.add(mesh);
+  };
+  // 人の背丈をとる縦の物差し
+  addRule(0.02, DOLL_HEIGHT, RULE_X, DOLL_HEIGHT / 2);
+  // 頭頂
+  addRule(0.16, 0.02, RULE_X, DOLL_HEIGHT);
+  // 座面の高さを人の体に当てる横線。椅子の脚元から物差しまで引く
+  addRule(RULE_X - far.position.x, 0.02, (RULE_X + far.position.x) / 2, SEAT_LEVEL);
+  root.add(measure);
 
   const removeSpot = ctx.lighting.addSpot({
     position: origin.clone().add(new THREE.Vector3(-1.6, 3.8, 1.2)),
@@ -136,6 +178,9 @@ function build(ctx: BuildContext): ExhibitInstance {
     setRevealed(_revealed, progress) {
       // 手前の座面を持ち上げて、2 つが別物であることを示す
       seat.position.set(seatHome.x, seatHome.y + progress * 0.45, seatHome.z);
+      // 同時に実寸の目盛りを出す。座面が人の腰より上にあることが読める
+      measure.visible = progress > 0.001;
+      measureMaterial.opacity = progress * 0.9;
     },
     dispose() {
       removeSpot();
@@ -148,6 +193,8 @@ function build(ctx: BuildContext): ExhibitInstance {
       body.geometry.dispose();
       head.geometry.dispose();
       dollMaterial.dispose();
+      for (const geometry of rulePieces) geometry.dispose();
+      measureMaterial.dispose();
     },
   };
 }
@@ -175,7 +222,7 @@ export const beuchetChair: ExhibitDefinition = {
    */
   footprint: {
     minX: POSITION.x - 0.7,
-    maxX: POSITION.x + 1.5,
+    maxX: POSITION.x + 1.2,
     minZ: POSITION.z - 3.6,
     maxZ: POSITION.z + 1.1,
   },

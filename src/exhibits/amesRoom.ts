@@ -221,10 +221,91 @@ function build(ctx: BuildContext): ExhibitInstance {
     fbl.clone().lerp(fbr, u).lerp(bbl.clone().lerp(bbr, u), v);
   const dollHeight = 0.62;
   const left = doll(dollHeight, 0xd4694a);
-  left.position.copy(onFloor(0.14, 0.86));
+  const leftHome = onFloor(0.14, 0.86);
+  left.position.copy(leftHome);
   const right = doll(dollHeight, 0x4a7fd4);
-  right.position.copy(onFloor(0.86, 0.86));
+  const rightHome = onFloor(0.86, 0.86);
+  right.position.copy(rightHome);
   root.add(left, right);
+
+  /**
+   * 種明かしで左の人形を運ぶ先（§11b-1）。
+   *
+   * 真上から見せるだけでは「奥行きの差＝距離の差」に見えてしまい、
+   * 同じ大きさである証明にならない。右の隣へ並べる。
+   * 床が台形なので、同じ u でも v によって奥行きが変わる。右の人形と
+   * **同じ奥行き**に来る v を解いて、真上から見て横並びにする。
+   */
+  const leftBesideU = 0.62;
+  const zAt = (v: number): number => onFloor(leftBesideU, v).z;
+  const z0 = zAt(0);
+  const z1 = zAt(1);
+  const leftBeside = onFloor(
+    leftBesideU,
+    THREE.MathUtils.clamp((rightHome.z - z0) / (z1 - z0), 0, 1),
+  );
+
+  /**
+   * 元の位置に残す半透明のゴースト（§11b-2）。
+   * 「動かしただけで縮んでいない」ことを担保する。
+   *
+   * 部屋の中は暗いので、陰影のつく材質では俯瞰でまったく見えない。
+   * 発光しない代わりに照明の影響を受けない MeshBasicMaterial にする。
+   */
+  const ghost = doll(dollHeight, 0xd4694a);
+  ghost.position.copy(leftHome);
+  ghost.visible = false;
+  const ghostMaterial = new THREE.MeshBasicMaterial({
+    color: 0xd4694a,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+  ghost.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    (mesh.material as THREE.Material).dispose();
+    mesh.material = ghostMaterial;
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    // 半透明の壁と前後を争わないよう、必ず後に描く
+    mesh.renderOrder = 5;
+  });
+  root.add(ghost);
+
+  /**
+   * 実寸の物差し（§11b-3）。
+   *
+   * **1 つの BufferGeometry を 2 本で共有し、スケールも変えない。**
+   * コードを読んだだけで「同一寸法」が保証される形にしてある。
+   *
+   * 立てるのではなく床に寝かせる。俯瞰の種明かしでは垂直の棒は端から
+   * 見ることになり、ほとんど長さを持たない。寝かせれば「同じ長さの棒が
+   * 2 本」として plan view でそのまま読める。
+   */
+  const barGeometry = new THREE.BoxGeometry(0.022, 0.022, dollHeight);
+  const barMaterial = new THREE.MeshBasicMaterial({
+    color: 0x6fd2b0,
+    transparent: true,
+    opacity: 0,
+  });
+  barMaterial.toneMapped = false;
+  const bars = [left, right].map(() => {
+    const bar = new THREE.Mesh(barGeometry, barMaterial);
+    bar.visible = false;
+    bar.renderOrder = 5;
+    root.add(bar);
+    return bar;
+  });
+  /**
+   * 人形の脇に物差しを置く。奥行き方向へ寝かせるのは、床が傾いていて
+   * 手前へずらすと床に潜ってしまうため（同じ z なら足元の高さも同じ）。
+   */
+  const placeBar = (bar: THREE.Mesh, at: V3, side: number): void => {
+    // 床は前後にも左右にも傾いている。棒の端が潜らないよう少し浮かせる
+    // （真上から見るぶんには 0.1m の浮きは見えない）
+    bar.position.set(at.x + side * 0.19, at.y + 0.1, at.z);
+  };
 
   const origin = new THREE.Vector3(POSITION.x, POSITION.y, POSITION.z);
   const removeSpot = ctx.lighting.addSpot({
@@ -249,6 +330,16 @@ function build(ctx: BuildContext): ExhibitInstance {
         material.opacity = 1 - fadeOnReveal * progress;
         material.depthWrite = material.opacity > 0.98;
       }
+
+      // 左の人形を右の隣へ運ぶ。並べば同一寸法が一目で分かる（§11b）
+      left.position.lerpVectors(leftHome, leftBeside, progress);
+      const showing = progress > 0.001;
+      ghost.visible = showing;
+      ghostMaterial.opacity = progress * 0.55;
+      for (const bar of bars) bar.visible = showing;
+      barMaterial.opacity = progress * 0.9;
+      placeBar(bars[0]!, left.position, -1);
+      placeBar(bars[1]!, rightHome, 1);
     },
     dispose() {
       removeSpot();
@@ -260,13 +351,16 @@ function build(ctx: BuildContext): ExhibitInstance {
       frameMaterial.dispose();
       wallMap.dispose();
       floorMap.dispose();
-      for (const group of [left, right]) {
+      for (const group of [left, right, ghost]) {
         group.traverse((o) => {
           const mesh = o as THREE.Mesh;
           mesh.geometry?.dispose();
           if (mesh.material) (mesh.material as THREE.Material).dispose();
         });
       }
+      barGeometry.dispose();
+      barMaterial.dispose();
+      ghostMaterial.dispose();
     },
   };
 }
@@ -281,8 +375,9 @@ export const amesRoom: ExhibitDefinition = {
   position: POSITION,
   rotationY: 0,
   footprint: FOOTPRINT,
-  // 覗き穴が原点なので、真上からの演出はもっと奥（部屋の中心）を見る
-  revealFocus: { x: 0, y: 1.0, z: -4.4 },
+  // 覗き穴が原点なので、真上からの演出はもっと奥を見る。並んだ 2 体
+  //（局所 z ≈ −4.0）と台形の床（z −1.6 〜 −9.0）が同時に収まる中心（§11b-4）
+  revealFocus: { x: -0.2, y: 0.3, z: -4.6 },
   viewSpots: [
     {
       standAt: { x: POSITION.x, y: 0, z: POSITION.z },
