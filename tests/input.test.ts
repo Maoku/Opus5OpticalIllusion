@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+// @vitest-environment happy-dom
+import { afterEach, describe, expect, it } from 'vitest';
+import { KeyboardMouseSource } from '../src/core/input/KeyboardMouseSource';
 import {
   applyDeadzone,
   isDashing,
@@ -92,5 +94,97 @@ describe('toNdc', () => {
     const p = toNdc(100, 100, { left: 100, top: 100, width: 800, height: 600 });
     expect(p.x).toBeCloseTo(-1);
     expect(p.y).toBeCloseTo(1);
+  });
+});
+
+/**
+ * §9a: 「ヒントを開いて閉じたら二度と歩けない」の回帰。
+ * 閉じたヒントはフォーカスをヒントボタンへ返していたので、単独の BUTTON を
+ * 入力抑止の条件にすると移動が永久に死ぬ。
+ */
+describe('KeyboardMouseSource focus handling', () => {
+  const sources: KeyboardMouseSource[] = [];
+
+  afterEach(() => {
+    for (const s of sources) s.dispose();
+    sources.length = 0;
+    document.body.replaceChildren();
+  });
+
+  function setup(): KeyboardMouseSource {
+    const canvas = document.createElement('div');
+    document.body.appendChild(canvas);
+    const source = new KeyboardMouseSource(canvas);
+    sources.push(source);
+    return source;
+  }
+
+  function press(code: string): void {
+    window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+  }
+
+  function focusButton(host: HTMLElement = document.body): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    host.appendChild(button);
+    button.focus();
+    return button;
+  }
+
+  it('keeps moving while a HUD button has focus', () => {
+    const source = setup();
+    focusButton();
+    press('KeyW');
+    expect(source.poll().move.y).toBeGreaterThan(0);
+  });
+
+  it('stays still while a control inside a dialog has focus', () => {
+    const source = setup();
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    document.body.appendChild(dialog);
+    focusButton(dialog);
+    press('KeyW');
+    expect(source.poll().move).toEqual({ x: 0, y: 0 });
+  });
+
+  it('stays still while a text field has focus', () => {
+    const source = setup();
+    const field = document.createElement('input');
+    document.body.appendChild(field);
+    field.focus();
+    press('KeyW');
+    expect(source.poll().move).toEqual({ x: 0, y: 0 });
+  });
+
+  it('still delivers Escape from inside a dialog', () => {
+    const source = setup();
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    document.body.appendChild(dialog);
+    focusButton(dialog);
+    press('Escape');
+    expect(source.poll().pressed.has('cancel')).toBe(true);
+  });
+
+  // Space はボタンの活性化キーでもある。クリックと決定の二重発火を避ける
+  it('yields Space to a focused button instead of firing interact', () => {
+    const source = setup();
+    focusButton();
+    press('Space');
+    expect(source.poll().pressed.has('interact')).toBe(false);
+  });
+
+  it('fires interact from Space when nothing is focused', () => {
+    const source = setup();
+    press('Space');
+    expect(source.poll().pressed.has('interact')).toBe(true);
+  });
+
+  it('always fires interact from F, even with a button focused', () => {
+    const source = setup();
+    focusButton();
+    press('KeyF');
+    expect(source.poll().pressed.has('interact')).toBe(true);
   });
 });

@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HintPanel } from '../src/ui/HintPanel';
+import { setSceneElement } from '../src/ui/focus';
 import { ja } from '../src/i18n/ja';
 import type { Dictionary } from '../src/i18n';
 import type { HintContent } from '../src/exhibits/types';
@@ -149,6 +150,19 @@ describe('HintPanel staged disclosure', () => {
     } as Dictionary;
     s.panel.setDictionary(swapped);
     expect(s.root.querySelector('.hint-next')!.textContent).toBe('Show me why');
+  });
+
+  // §9a: 閉じたあとフォーカスがヒントボタンに残ると WASD が死ぬ
+  it('returns focus to the scene when closed, not to the hint button', () => {
+    const canvas = document.createElement('canvas');
+    document.body.appendChild(canvas);
+    setSceneElement(canvas);
+    s.panel.setContent(CONTENT);
+    s.panel.setAvailable(true);
+    s.panel.advance();
+    s.panel.close();
+    expect(document.activeElement).toBe(canvas);
+    setSceneElement(null);
   });
 
   // §8c: パネルは実 DOM テキストであること（スクリーンリーダ可読）

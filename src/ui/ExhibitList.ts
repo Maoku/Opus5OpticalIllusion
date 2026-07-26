@@ -1,6 +1,7 @@
 import type { ExhibitRecord } from '../exhibits/ExhibitManager';
 import type { RoomId } from '../data/layout';
 import type { Dictionary } from '../i18n';
+import { focusScene } from './focus';
 
 export interface ExhibitListOptions {
   /** 選択された展示の ViewSpot へワープする */
@@ -77,6 +78,7 @@ export class ExhibitList {
   close(): void {
     this.#open = false;
     this.el.hidden = true;
+    focusScene();
   }
 
   toggle(records: ExhibitRecord[]): void {

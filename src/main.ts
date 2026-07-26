@@ -11,6 +11,7 @@ import type { HintContent } from './exhibits/types';
 import { I18n, resolveInitialLocale, type Dictionary, type Locale } from './i18n';
 import { PlayerController } from './player/PlayerController';
 import { ExhibitList } from './ui/ExhibitList';
+import { focusScene, setSceneElement } from './ui/focus';
 import { HintPanel } from './ui/HintPanel';
 import { Hud } from './ui/Hud';
 import { LanguageSwitch } from './ui/LanguageSwitch';
@@ -22,9 +23,15 @@ import { ViewpointController } from './viewpoint/ViewpointController';
 import { Museum } from './world/Museum';
 import { Signage } from './world/Signage';
 
-const canvas = document.querySelector<HTMLCanvasElement>('#scene');
-const overlay = document.querySelector<HTMLElement>('#overlay');
-if (!canvas || !overlay) throw new Error('required DOM nodes are missing');
+const canvasNode = document.querySelector<HTMLCanvasElement>('#scene');
+const overlayNode = document.querySelector<HTMLElement>('#overlay');
+if (!canvasNode || !overlayNode) throw new Error('required DOM nodes are missing');
+const canvas: HTMLCanvasElement = canvasNode;
+const overlay: HTMLElement = overlayNode;
+
+// UI を閉じたときの戻し先。canvas は既定でフォーカスを受けないので登録時に
+// tabindex="-1" が付く（§9a）。
+setSceneElement(canvas);
 
 // ------------------------------------------------------------------ systems
 
@@ -248,6 +255,19 @@ function frame(dt: number, elapsed: number): void {
     viewpoint.isEngaged || focused?.definition.brightnessCritical === true;
   vignette.classList.toggle('is-off', brightnessSensitive);
   updateFootsteps();
+  keepFocusOnScene();
+}
+
+/**
+ * 保険（§9a-4）。何も開いていないのにオーバーレイ上のコントロールへ
+ * フォーカスが残っていると、Space / Enter がそちらへ吸われる。操作面へ戻す。
+ */
+function keepFocusOnScene(): void {
+  if (anyModalOpen() || hintPanel.isOpen) return;
+  const active = document.activeElement;
+  if (!active || active === document.body || !overlay.contains(active)) return;
+  if (active.closest('[role="dialog"]')) return;
+  focusScene();
 }
 
 /** 歩いた距離に応じて足音を鳴らす。歩幅は目線の高さに連動する（D2） */

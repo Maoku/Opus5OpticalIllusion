@@ -1,5 +1,6 @@
 import type { Settings, SettingsModel } from '../core/Settings';
 import type { QualityLevel } from '../core/Quality';
+import { focusScene } from './focus';
 
 /**
  * 設定メニューの文言。i18n 辞書から注入する（§5.1: コードに文言を埋めない）。
@@ -104,7 +105,9 @@ export class SettingsMenu {
   close(): void {
     this.#open = false;
     this.el.hidden = true;
-    this.#onCloseFocus?.focus();
+    // 明示的な戻し先が無ければ操作面へ（§9a-2）
+    if (this.#onCloseFocus) this.#onCloseFocus.focus();
+    else focusScene();
   }
 
   toggle(): void {

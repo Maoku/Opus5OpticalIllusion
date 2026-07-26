@@ -30,17 +30,38 @@ const MOVE_KEYS: Record<string, [number, number]> = {
 };
 
 /**
- * UI 側にフォーカスがあるか。
+ * UI が入力を専有しているか。
  * ここが true の間はゲーム側のキー割り当てを止め、ブラウザ既定の
  * フォーカス移動と活性化に任せる。
+ *
+ * 単独の `<button>` は **含めない**（§9a）。HUD 上のボタンにフォーカスが
+ * 残っただけで移動不能になるのは設計として成り立たない。ヒントを閉じると
+ * フォーカスはヒントボタンへ戻るため、含めると「一度開いたら二度と歩けない」
+ * になっていた。抑止するのはテキスト系のコントロールとダイアログの中だけ。
  */
-function isTextualFocus(): boolean {
-  const active = document.activeElement;
+export function isUiFocus(active: Element | null = document.activeElement): boolean {
   if (!active || active === document.body) return false;
   const tag = active.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
-  if (tag === 'BUTTON') return true;
+  if ((active as HTMLElement).isContentEditable) return true;
+  if (active.hasAttribute('contenteditable')) return true;
   return !!active.closest('[role="dialog"]');
+}
+
+/**
+ * そのキーが、フォーカス中の UI コントロールを活性化するか（§9a-3）。
+ *
+ * Space / Enter はボタンの既定の活性化キーでもあるので、そのまま `interact` に
+ * 積むとクリックと決定が二重に走る。ボタンにフォーカスがある間だけ譲る。
+ */
+export function activatesFocusedControl(
+  code: string,
+  active: Element | null = document.activeElement,
+): boolean {
+  if (code !== 'Space' && code !== 'Enter') return false;
+  if (!active || active === document.body) return false;
+  const tag = active.tagName;
+  return tag === 'BUTTON' || tag === 'A' || active.getAttribute('role') === 'button';
 }
 
 /** ピッチのクランプ（±85°） */
@@ -65,14 +86,14 @@ export class KeyboardMouseSource implements InputSource {
       // §8c: キーボードだけで全操作できること。
       // パネルやダイアログにフォーカスがあるときは Tab を奪わない。
       // 奪うとフォーカス移動が死に、キーボードだけの利用者が閉じ込められる。
-      if (isTextualFocus()) {
+      if (isUiFocus()) {
         if (e.code === 'Escape') this.#pressed.add('cancel');
         return;
       }
       if (e.code === 'Tab') e.preventDefault();
       this.#held.add(e.code);
       const action = ACTION_KEYS[e.code];
-      if (action) this.#pressed.add(action);
+      if (action && !activatesFocusedControl(e.code)) this.#pressed.add(action);
       this.#anyInput = true;
     };
     const onKeyUp = (e: KeyboardEvent): void => {

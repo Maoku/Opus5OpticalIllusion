@@ -1,5 +1,6 @@
 import type { Dictionary } from '../i18n';
 import type { HintContent } from '../exhibits/types';
+import { focusScene } from './focus';
 
 export type HintStage = 'hidden' | 'appearance' | 'explanation';
 
@@ -172,8 +173,10 @@ export class HintPanel {
     if (wasRevealed !== isRevealed) this.options.onRevealChange(isRevealed);
     this.options.onStageChange?.(stage);
     this.#render();
+    // 閉じたらヒントボタンではなく操作面へ戻す（§9a-2）。
+    // ボタンへ返すとフォーカスが HUD に残り、以後の WASD が宙に浮く。
     if (stage !== 'hidden') this.#next.focus();
-    else this.button.focus({ preventScroll: true });
+    else focusScene();
   }
 
   #render(): void {
