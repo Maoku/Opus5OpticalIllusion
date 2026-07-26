@@ -7,8 +7,16 @@ import type { PlayerController, PlayerOverrideHandle } from '../player/PlayerCon
 import { ViewSpot } from '../viewpoint/ViewSpot';
 import { poseLookingAt, type ViewpointController } from '../viewpoint/ViewpointController';
 import type { Lighting } from '../world/Lighting';
+import type { Collision } from '../world/Collision';
+import type { AudioBus } from '../core/AudioBus';
 import { saturate } from '../utils/math';
-import type { ExhibitDefinition, ExhibitId, ExhibitInstance, HintContent } from './types';
+import type {
+  ExhibitDefinition,
+  ExhibitFlags,
+  ExhibitId,
+  ExhibitInstance,
+  HintContent,
+} from './types';
 
 /** これより遠い展示は描画も update も止める（§Phase 4: LOD/カリング） */
 export const CULL_DISTANCE = 20;
@@ -49,20 +57,28 @@ export class ExhibitManager implements Updatable {
   readonly #raycaster = new THREE.Raycaster();
   readonly #ndc = new THREE.Vector2();
   #focused: ExhibitRecord | null = null;
-  #reducedMotion = false;
+
+  /** 展示が参照を持ち続ける。値の差し替えではなく中身の書き換えで伝える */
+  readonly flags: ExhibitFlags = { reducedMotion: false, shrinkingRoom: true, mobile: false };
 
   constructor(
     private readonly app: SceneHost,
     private readonly lighting: Lighting,
     private readonly player: PlayerController,
     private readonly viewpoint: ViewpointController,
+    private readonly collision: Collision,
+    private readonly audio: AudioBus,
   ) {
     this.#group.name = 'exhibits';
     app.scene.add(this.#group);
   }
 
   set reducedMotion(v: boolean) {
-    this.#reducedMotion = v;
+    this.flags.reducedMotion = v;
+  }
+
+  get reducedMotion(): boolean {
+    return this.flags.reducedMotion;
   }
 
   get focused(): ExhibitRecord | null {
@@ -94,7 +110,10 @@ export class ExhibitManager implements Updatable {
       definition,
       playerOverride: override,
       lighting: this.lighting,
-      reducedMotion: this.#reducedMotion,
+      collision: this.collision,
+      audio: this.audio,
+      flags: this.flags,
+      reducedMotion: this.flags.reducedMotion,
     });
 
     instance.root.position.set(definition.position.x, definition.position.y, definition.position.z);
@@ -128,6 +147,8 @@ export class ExhibitManager implements Updatable {
     // ゾーンを出ないまま消えると身体改変が残る。必ず退出を通す。
     if (record.inZone) this.#exitZone(record);
     record.override.release();
+    // 展示が立てた壁も一緒に片づける
+    this.collision.removeByTag(id);
     this.viewpoint.removeByExhibit(id);
     for (const spot of record.spots) spot.dispose();
     record.instance.dispose();
@@ -263,7 +284,7 @@ export class ExhibitManager implements Updatable {
   #updateReveal(record: ExhibitRecord, dt: number): void {
     const target = record.revealed ? 1 : 0;
     if (record.revealProgress === target) return;
-    const speed = dt / (this.#reducedMotion ? REVEAL_DURATION * 0.5 : REVEAL_DURATION);
+    const speed = dt / (this.flags.reducedMotion ? REVEAL_DURATION * 0.5 : REVEAL_DURATION);
     record.revealProgress = saturate(
       record.revealProgress + (target > record.revealProgress ? speed : -speed),
     );
@@ -316,6 +337,13 @@ export class ExhibitManager implements Updatable {
   /** タップ位置からのレイキャスト（§4.1: クロスヘアは指で隠れる） */
   pickAt(input: InputState): ExhibitRecord | null {
     return this.#raycastFocus(input.pointerNdc);
+  }
+
+  /** ワールド内の仕掛け（D4 のボタンなど）を押す */
+  interact(record: ExhibitRecord | null = this.#focused): boolean {
+    if (!record?.definition.interactTextKey) return false;
+    record.instance.onInteract?.();
+    return true;
   }
 
   #setFocus(record: ExhibitRecord | null): void {

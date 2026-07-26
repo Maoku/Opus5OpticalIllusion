@@ -1,4 +1,5 @@
 import { amesRoom } from './amesRoom';
+import { audibleCollision } from './audibleCollision';
 import { anamorphosis } from './anamorphosis';
 import { beuchetChair } from './beuchetChair';
 import { cafeWall } from './cafeWall';
@@ -12,6 +13,8 @@ import { penroseStairs } from './penroseStairs';
 import { penroseTriangle } from './penroseTriangle';
 import { peripheralDrift } from './peripheralDrift';
 import { ponzoCorridor } from './ponzoCorridor';
+import { shrinkingRoom } from './shrinkingRoom';
+import { underTheStripes } from './underTheStripes';
 import type { ExhibitDefinition } from './types';
 
 /**
@@ -38,4 +41,8 @@ export const EXHIBITS: readonly ExhibitDefinition[] = [
   beuchetChair,
   hollowMask,
   ponzoCorridor,
+  // Room D — Opus 棟（Room A〜C を一定数見ると開錠）
+  underTheStripes,
+  audibleCollision,
+  shrinkingRoom,
 ];

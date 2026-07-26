@@ -4,7 +4,9 @@ import type { QualityLevel } from '../core/Quality';
 import type { RoomId } from '../data/layout';
 import type { PlayerOverrideHandle } from '../player/PlayerController';
 import type { Lighting } from '../world/Lighting';
-import type { ExhibitTextKey } from '../i18n';
+import type { Collision } from '../world/Collision';
+import type { AudioBus } from '../core/AudioBus';
+import type { Dictionary, ExhibitTextKey } from '../i18n';
 
 export type ExhibitId = string;
 export type { RoomId };
@@ -94,6 +96,11 @@ export interface ExhibitDefinition {
    * 見せたい実体は奥」という展示ではこれが必要になる。
    */
   revealFocus?: Vec3Like;
+  /**
+   * ワールド内のボタンなど、その場で押せる仕掛けを持つ展示。
+   * HUD とタッチ UI に出す文言のキーを指定する（D4 の「音を有効にする」など）。
+   */
+  interactTextKey?: keyof Dictionary['ui'];
   /** 一覧・順路での並び順 */
   order?: number;
   build(ctx: BuildContext): Promise<ExhibitInstance> | ExhibitInstance;
@@ -109,11 +116,26 @@ export interface ExhibitInstance {
    * 文字そのものが展示内容である展示はここで作り直す（§5.4）。
    */
   setLocale?(content: HintContent): void;
+  /** interactTextKey を持つ展示で、決定が押されたときに呼ばれる */
+  onInteract?(): void;
   /** kind === 'zone' の展示のみ。ExhibitManager が進入・退出を通知する */
   onZoneEnter?(): void;
   /** 退出は必ず呼ばれる。playerOverride の巻き戻しはここで行う */
   onZoneExit?(): void;
   dispose(): void;
+}
+
+/**
+ * 実行中に変わりうる設定。展示は参照を持ち続け、毎フレーム最新値を読む。
+ * build 時の値をコピーすると、設定変更が展示に届かなくなる。
+ */
+export interface ExhibitFlags {
+  /** prefers-reduced-motion または設定でモーション低減が有効か */
+  reducedMotion: boolean;
+  /** ROOM_D §5: D2「縮んでいく部屋」の独立トグル */
+  shrinkingRoom: boolean;
+  /** タッチ主体の端末か。§4.5 の展示別対応（D2 のドリフト時間延長）に使う */
+  mobile: boolean;
 }
 
 export interface BuildContext {
@@ -129,6 +151,15 @@ export interface BuildContext {
   playerOverride: PlayerOverrideHandle;
   /** 展示スポットの要求先 */
   lighting: Lighting;
-  /** prefers-reduced-motion または設定でモーション低減が有効か */
+  /**
+   * 展示が自前の壁を立てるための当たり判定。
+   * 追加した線分は ExhibitManager が展示 ID のタグで一括除去する。
+   */
+  collision: Collision;
+  /** 音が成立条件の展示（D4）が使う */
+  audio: AudioBus;
+  /** 実行中に変わる設定への参照 */
+  flags: ExhibitFlags;
+  /** @deprecated flags.reducedMotion を使う */
   reducedMotion: boolean;
 }

@@ -12,6 +12,8 @@ export class Hud {
   readonly #crosshair: HTMLDivElement;
   readonly #room: HTMLDivElement;
   readonly #prompt: HTMLDivElement;
+  readonly #toast: HTMLDivElement;
+  #toastTimer = 0;
   #source: InputSourceId = 'keyboardMouse';
   #promptText: string | null = null;
 
@@ -21,10 +23,12 @@ export class Hud {
     this.el.innerHTML = `
       <div class="hud-crosshair" aria-hidden="true"></div>
       <div class="hud-room"></div>
-      <div class="hud-prompt" role="status" aria-live="polite"></div>`;
+      <div class="hud-prompt" role="status" aria-live="polite"></div>
+      <div class="hud-toast" role="status" aria-live="polite"></div>`;
     this.#crosshair = this.el.querySelector('.hud-crosshair')!;
     this.#room = this.el.querySelector('.hud-room')!;
     this.#prompt = this.el.querySelector('.hud-prompt')!;
+    this.#toast = this.el.querySelector('.hud-toast')!;
     parent.appendChild(this.el);
   }
 
@@ -50,7 +54,18 @@ export class Hud {
     // 文言そのものは setPrompt / setRoomName の呼び出し側が辞書から渡す
   }
 
+  /** 一時的な告知（Opus 棟の開錠など）。数秒で消える */
+  showToast(text: string, ms = 5000): void {
+    this.#toast.textContent = text;
+    this.#toast.classList.add('is-visible');
+    window.clearTimeout(this.#toastTimer);
+    this.#toastTimer = window.setTimeout(() => {
+      this.#toast.classList.remove('is-visible');
+    }, ms);
+  }
+
   dispose(): void {
+    window.clearTimeout(this.#toastTimer);
     this.el.remove();
   }
 

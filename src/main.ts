@@ -1,6 +1,7 @@
 import './ui/styles.css';
 import * as THREE from 'three';
 import { App } from './core/App';
+import { AudioBus } from './core/AudioBus';
 import { InputManager } from './core/input/InputManager';
 import { Settings } from './core/Settings';
 import { SPAWN } from './data/layout';
@@ -38,7 +39,15 @@ player.spawn(SPAWN.x, SPAWN.z, SPAWN.yaw);
 museum.track(app.camera);
 
 const viewpoint = new ViewpointController(app, player);
-const exhibits = new ExhibitManager(app, museum.lighting, player, viewpoint);
+const audio = new AudioBus();
+const exhibits = new ExhibitManager(
+  app,
+  museum.lighting,
+  player,
+  viewpoint,
+  museum.collision,
+  audio,
+);
 
 // ----------------------------------------------------------------- overlays
 
@@ -97,6 +106,9 @@ function applySettings(): void {
   const reducedMotion = s.reducedMotion || app.device.prefersReducedMotion;
   viewpoint.reducedMotion = reducedMotion;
   exhibits.reducedMotion = reducedMotion;
+  exhibits.flags.shrinkingRoom = s.shrinkingRoom && !reducedMotion;
+  exhibits.flags.mobile = app.device.isMobileLike;
+  audio.muted = s.muted;
   if (app.camera.fov !== s.fov && !viewpoint.isEngaged) {
     app.camera.fov = s.fov;
     app.camera.updateProjectionMatrix();
@@ -133,6 +145,25 @@ function warpTo(record: ExhibitRecord): void {
   player.warpTo(p.x, p.z + 3, Math.PI);
 }
 
+/**
+ * Opus 棟の開錠（ROOM_D §4）。
+ *
+ * 「錯視とは絵の中にあるもの」という前提を Room A〜C で十分に固めてから、
+ * それが崩される部屋に入る、という順序が効く。
+ * 「見た」の定義は ViewSpot に立って鑑賞したこと。近くを通っただけでは数えない。
+ */
+const OPUS_UNLOCK_COUNT = 6;
+const viewedExhibits = new Set<string>();
+
+viewpoint.events.on('locked', (spot) => {
+  const record = exhibits.records.get(spot.exhibitId);
+  if (!record || record.definition.room === 'opus') return;
+  viewedExhibits.add(spot.exhibitId);
+  if (viewedExhibits.size < OPUS_UNLOCK_COUNT || museum.opusUnlocked) return;
+  museum.unlockOpus();
+  hud.showToast(i18n.t.rooms.opus, 6000);
+});
+
 function anyModalOpen(): boolean {
   return settingsMenu.isOpen || exhibitList.isOpen;
 }
@@ -166,6 +197,11 @@ function frame(dt: number, elapsed: number): void {
   viewpoint.update(dt, state);
   exhibits.update(dt, elapsed);
 
+  // --- ワールド内の仕掛け（D4 の音声ボタンなど）---------------------------
+  if (!anyModalOpen() && state.pressed.has('interact') && !viewpoint.candidate) {
+    exhibits.interact(exhibits.focused ?? exhibits.pickAt(state));
+  }
+
   // --- ヒント -----------------------------------------------------------
   // ボタンが出るのは「ViewSpot にロック中」か「展示のそばにいる」ときだけ
   const focused = exhibits.focused;
@@ -177,22 +213,34 @@ function frame(dt: number, elapsed: number): void {
 
   // --- HUD / タッチ UI --------------------------------------------------
   const t = i18n.t;
-  hud.setPrompt(
-    !anyModalOpen() && !viewpoint.isEngaged && viewpoint.candidate ? t.ui.standHere : null,
-  );
+  hud.setPrompt(promptFor(t, focused));
   if (app.device.isTouch) {
     touchBar.setEnabled(!anyModalOpen());
-    touchBar.setActions(buildTouchActions(t, hintAvailable));
+    touchBar.setActions(buildTouchActions(t, hintAvailable, focused));
   }
   orientationGate.setPortrait(app.device.viewport.portrait);
 }
 app.add({ update: frame });
 
+/** 決定キーで今なにが起きるか。ViewSpot への進入が最優先。 */
+function promptFor(t: Dictionary, focused: ExhibitRecord | null): string | null {
+  if (anyModalOpen()) return null;
+  if (!viewpoint.isEngaged && viewpoint.candidate) return t.ui.standHere;
+  const key = focused?.definition.interactTextKey;
+  return key ? t.ui[key] : null;
+}
+
 /** 文脈ボタン。ヒントボタンは HintPanel が右下に常設するのでここには積まない。 */
-function buildTouchActions(t: Dictionary, hintAvailable: boolean): TouchActionSpec[] {
+function buildTouchActions(
+  t: Dictionary,
+  hintAvailable: boolean,
+  focused: ExhibitRecord | null,
+): TouchActionSpec[] {
   const actions: TouchActionSpec[] = [];
   if (!viewpoint.isEngaged && viewpoint.candidate) {
     actions.push({ action: 'interact', label: t.ui.standHere, primary: true });
+  } else if (focused?.definition.interactTextKey) {
+    actions.push({ action: 'interact', label: t.ui[focused.definition.interactTextKey] });
   }
   if (viewpoint.isEngaged) {
     actions.push({ action: 'cancel', label: t.ui.leaveView });
@@ -212,6 +260,7 @@ if (import.meta.env.DEV) {
     settings,
     viewpoint,
     exhibits,
+    audio,
     i18n,
     hintPanel,
     exhibitList,
@@ -238,6 +287,8 @@ async function boot(): Promise<void> {
   // 結果を待たずに始める（await すると非対応環境で入場ボタンが効かなくなる）
   loading.hide();
   app.start();
+  // 入場クリックはユーザー操作。ここで autoplay ポリシーを解禁しておく（§4.3 / D4）
+  void audio.resume();
   void app.device.tryImmersive(document.documentElement);
 }
 

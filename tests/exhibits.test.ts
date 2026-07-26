@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { Assets } from '../src/core/Assets';
+import { AudioBus } from '../src/core/AudioBus';
 import { Quality } from '../src/core/Quality';
 import type { SceneHost } from '../src/core/SceneHost';
 import { emptyInputState, type InputState } from '../src/core/input/types';
@@ -35,7 +36,8 @@ function makeHarness(): Harness {
   const player = new PlayerController(camera, collision);
   const viewpoint = new ViewpointController(host, player);
   const lighting = new Lighting(scene, quality);
-  const exhibits = new ExhibitManager(host, lighting, player, viewpoint);
+  const audio = new AudioBus();
+  const exhibits = new ExhibitManager(host, lighting, player, viewpoint, collision, audio);
   return {
     host,
     player,
