@@ -5,6 +5,7 @@ import {
   pickOrbitViewpoint,
 } from '../src/exhibits/common/revealCamera';
 import { EXHIBITS } from '../src/exhibits/registry';
+import { cameraKindOf } from '../src/exhibits/ExhibitManager';
 import { areaAt, areaById } from '../src/data/layout';
 import type { Footprint } from '../src/exhibits/types';
 
@@ -97,6 +98,57 @@ describe('pickOrbitViewpoint', () => {
     expect(pick.clamped).toBe(true);
     expect(Math.abs(pick.x)).toBeLessThanOrEqual(0.8);
     expect(Math.abs(pick.z)).toBeLessThanOrEqual(0.8);
+  });
+});
+
+/** §11a: 見た目の演出とカメラ演出を 2 軸に分けた結果を固定する */
+describe('cameraKindOf', () => {
+  it('keeps deriving orbit and topDown from the reveal kind', () => {
+    for (const e of EXHIBITS) {
+      if (e.revealCamera) continue;
+      const expected = e.reveal === 'orbit' || e.reveal === 'topDown' ? e.reveal : null;
+      expect(cameraKindOf(e), e.id).toBe(expected);
+    }
+  });
+
+  it('lets revealCamera override the reveal kind', () => {
+    // チェッカーシャドウは reveal:'strip' のままカメラだけ見下ろす
+    const checker = EXHIBITS.find((e) => e.id === 'checkerShadow')!;
+    expect(checker.reveal).toBe('strip');
+    expect(cameraKindOf(checker)).toBe('tilt');
+  });
+
+  it('gives every tilt exhibit a focus and a tilt spec', () => {
+    for (const e of EXHIBITS) {
+      if (cameraKindOf(e) !== 'tilt') continue;
+      expect(e.revealTilt, e.id).toBeDefined();
+      expect(e.revealFocus, e.id).toBeDefined();
+      // 真上まで振ると立体どうしの関係が読めなくなる
+      expect(e.revealTilt!.elevation, e.id).toBeLessThan(90);
+      expect(e.revealTilt!.elevation, e.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps every tilt viewpoint inside its room and under the ceiling', () => {
+    for (const e of EXHIBITS) {
+      if (cameraKindOf(e) !== 'tilt') continue;
+      const spot = e.viewSpots![0]!;
+      const focus = e.revealFocus!;
+      const centre = { x: e.position.x + focus.x, y: focus.y, z: e.position.z + focus.z };
+      const tilt = e.revealTilt!;
+      const dx = spot.eye.x - centre.x;
+      const dz = spot.eye.z - centre.z;
+      const flatLength = Math.hypot(dx, dz);
+      const radians = (tilt.elevation * Math.PI) / 180;
+      const reach = (tilt.distance * Math.cos(radians)) / flatLength;
+      const x = centre.x + dx * reach;
+      const z = centre.z + dz * reach;
+      const y = centre.y + tilt.distance * Math.sin(radians);
+      const area = areaAt(x, z);
+      expect(area?.room, `${e.id} room`).toBe(e.room);
+      expect(y, `${e.id} height`).toBeLessThan(area!.height - 0.3);
+      expect(y, `${e.id} height`).toBeGreaterThan(0.2);
+    }
   });
 });
 

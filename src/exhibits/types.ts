@@ -25,6 +25,27 @@ export type RevealKind =
   | 'topDown' // 真上から本当の形を見せる（エイムズ、アナモルフォーシス）
   | 'grayscale'; // 彩度を落とすと動きが止まる（回転する蛇）
 
+/**
+ * カメラ演出（§11a）。見た目の演出（RevealKind）とは軸を分ける。
+ *
+ * 「帯を出す」と「見下ろす」は本来独立で、まとめてしまうと
+ * チェッカーシャドウのように「帯は出るがカメラは水平のまま」になる。
+ *
+ *   orbit   … 回り込んで破綻を見せる
+ *   topDown … 真上から本当の形を見せる
+ *   tilt    … 方位はそのままに見下ろす。俯瞰しつつ立体の関係も残したいとき
+ */
+export type RevealCameraKind = 'orbit' | 'topDown' | 'tilt';
+
+/** revealCamera === 'tilt' の詰め方 */
+export interface RevealTilt {
+  /** 見下ろし角（度）。90 で真上 */
+  elevation: number;
+  /** 注視点までの距離 */
+  distance: number;
+  fov: number;
+}
+
 export interface Vec3Like {
   x: number;
   y: number;
@@ -111,6 +132,13 @@ export interface ExhibitDefinition {
    */
   footprint?: Footprint;
   reveal: RevealKind;
+  /**
+   * カメラ演出（§11a）。省略すると reveal から推測する
+   * （'orbit' / 'topDown' はそのまま、それ以外はカメラを動かさない）。
+   */
+  revealCamera?: RevealCameraKind;
+  /** revealCamera === 'tilt' のときの見下ろし角・距離・画角 */
+  revealTilt?: RevealTilt;
   /**
    * カメラ演出（orbit / topDown）が見るべき中心。展示のローカル座標。
    * 省略すると position が使われる。エイムズの部屋のように「原点が覗き穴で、

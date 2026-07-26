@@ -16,6 +16,15 @@ const EYE_HEIGHT = 1.6;
 const NEAR_Z = -2.6;
 const FAR_Z = -7.4;
 const NEAR_LENGTH = 0.6;
+/**
+ * 種明かしで奥の棒を手前の棒の真上に置く間隔（§11c-1）。
+ *
+ * 以前は 0.34m あり、視距離 2.6m では視野内でかなり空いていた。
+ * 「ぴったり同じ長さ」に見せるには、棒の太さ（0.05）の 1.5 倍程度まで詰める。
+ */
+const STACK_GAP = 0.07;
+/** 端を揃えて見せるガイド線の高さ */
+const GUIDE_HEIGHT = 0.24;
 const POSITION = { x: 24, y: 0, z: -1.0 };
 
 function stripeTexture(): THREE.CanvasTexture {
@@ -143,6 +152,24 @@ function build(ctx: BuildContext): ExhibitInstance {
     root.add(mesh);
   }
 
+  // --- 端を揃えるためのガイド線（§11c-3） ---------------------------------
+  // 2 本の棒の両端がどちらも同じ縦線に接することを見せる。長さの比較は
+  // 中心を合わせるより端を揃えるほうが確実に読める。
+  const guideMaterial = new THREE.MeshBasicMaterial({
+    color: 0x6fd2b0,
+    transparent: true,
+    opacity: 0,
+  });
+  guideMaterial.toneMapped = false;
+  const guides: THREE.Mesh[] = [];
+  for (const side of [-1, 1]) {
+    const guide = new THREE.Mesh(new THREE.BoxGeometry(0.006, GUIDE_HEIGHT, 0.006), guideMaterial);
+    guide.position.set((side * NEAR_LENGTH) / 2, GUIDE_HEIGHT / 2, NEAR_Z);
+    guide.visible = false;
+    guides.push(guide);
+    root.add(guide);
+  }
+
   const removeSpot = ctx.lighting.addSpot({
     position: origin.clone().add(new THREE.Vector3(0, 3.2, -3.0)),
     target: origin.clone().add(new THREE.Vector3(0, 0.4, -5.5)),
@@ -160,13 +187,19 @@ function build(ctx: BuildContext): ExhibitInstance {
   return {
     root,
     setRevealed(_revealed, progress) {
-      // タネあかし: 奥の棒を手前の棒の隣へ運んでくる。
-      // 距離ぶんの縮尺も戻すので、目に映る長さが同じだったことが分かる
-      const target = nearBase.clone().add(new THREE.Vector3(0, 0.34, 0));
-      bars[1]!.position.lerpVectors(farBase, target, progress);
+      // タネあかし: 奥の棒を手前の棒のすぐ上へ運んでくる。
+      // 距離ぶんの縮尺も戻すので、目に映る長さが同じだったことが分かる。
+      // 上下は 0.07m まで詰める（§11c-1）。縮尺を戻した奥の棒は
+      // 物理長が手前とまったく同じになるので、中心を合わせれば両端も揃う。
+      // 揃っていることはガイド線が示す（§11c-2/3）
       const scale = THREE.MathUtils.lerp(1, nearDistance / farDistance, progress);
+      const target = nearBase.clone().add(new THREE.Vector3(0, STACK_GAP, 0));
+      bars[1]!.position.lerpVectors(farBase, target, progress);
       bars[1]!.scale.set(scale, scale, scale);
       bars[0]!.scale.copy(nearScale);
+
+      for (const guide of guides) guide.visible = progress > 0.001;
+      guideMaterial.opacity = progress * 0.85;
     },
     dispose() {
       removeSpot();
@@ -177,6 +210,8 @@ function build(ctx: BuildContext): ExhibitInstance {
       corridorMaterial.dispose();
       for (const bar of bars) bar.geometry.dispose();
       barMaterial.dispose();
+      for (const guide of guides) guide.geometry.dispose();
+      guideMaterial.dispose();
     },
   };
 }
@@ -188,6 +223,9 @@ export const ponzoCorridor: ExhibitDefinition = {
   kind: 'object',
   order: 14,
   reveal: 'measure',
+  // 並んだ 2 本に寄る。水平のままだと廊下の奥行きに気を取られる（§11c-4）
+  revealCamera: 'tilt',
+  revealTilt: { elevation: 18, distance: 1.8, fov: 42 },
   position: POSITION,
   rotationY: 0,
   // 収束する廊下（zStart −1.2 〜 zEnd −9.0、手前の幅 2.6m）
@@ -197,7 +235,8 @@ export const ponzoCorridor: ExhibitDefinition = {
     minZ: POSITION.z - 9.0,
     maxZ: POSITION.z - 1.2,
   },
-  revealFocus: { x: 0, y: 0.4, z: -3.0 },
+  // 並んだ 2 本の棒そのものを見る（手前の棒の位置）
+  revealFocus: { x: 0, y: 0.12, z: NEAR_Z },
   viewSpots: [
     {
       standAt: { x: POSITION.x, y: 0, z: POSITION.z },

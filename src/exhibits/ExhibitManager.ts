@@ -20,10 +20,24 @@ import type {
   ExhibitInstance,
   Footprint,
   HintContent,
+  RevealCameraKind,
+  RevealTilt,
 } from './types';
 
 /** これより遠い展示は描画も update も止める（§Phase 4: LOD/カリング） */
 export const CULL_DISTANCE = 20;
+/** revealTilt を省略した展示の既定値 */
+const DEFAULT_TILT: RevealTilt = { elevation: 55, distance: 3.0, fov: 46 };
+
+/**
+ * カメラ演出の種別（§11a）。
+ * revealCamera が優先。省略時は従来どおり reveal から引く。
+ */
+export function cameraKindOf(definition: ExhibitDefinition): RevealCameraKind | null {
+  if (definition.revealCamera) return definition.revealCamera;
+  if (definition.reveal === 'orbit' || definition.reveal === 'topDown') return definition.reveal;
+  return null;
+}
 /** reveal 演出の進行時間 */
 const REVEAL_DURATION = 1.1;
 
@@ -236,8 +250,8 @@ export class ExhibitManager implements Updatable {
    * 展示側からカメラを触らせると、ロック解除との整合が取れなくなるため。
    */
   #applyCameraReveal(record: ExhibitRecord, revealed: boolean): void {
-    const kind = record.definition.reveal;
-    if (kind !== 'orbit' && kind !== 'topDown') return;
+    const kind = cameraKindOf(record.definition);
+    if (!kind) return;
     if (!this.viewpoint.isEngaged) return;
     if (!revealed) {
       this.viewpoint.setRevealPose(null, 1.4);
@@ -301,6 +315,28 @@ export class ExhibitManager implements Updatable {
       } else {
         this.viewpoint.setRevealPose(poseAt(1), 2.4);
       }
+      return;
+    }
+
+    if (kind === 'tilt') {
+      // 方位は正解視点のまま、見下ろし角だけを付ける（§11a）。
+      // 真上まで振ると立体どうしの関係（影と円柱、棒と廊下）が読めなくなる。
+      const tilt = record.definition.revealTilt ?? DEFAULT_TILT;
+      const flat = spot.eye.clone().sub(centre).setY(0);
+      if (flat.lengthSq() < 1e-6) flat.set(0, 0, 1);
+      flat.normalize();
+      const radians = THREE.MathUtils.degToRad(tilt.elevation);
+      const ground = clampToBounds(
+        bounds,
+        centre.x + flat.x * tilt.distance * Math.cos(radians),
+        centre.z + flat.z * tilt.distance * Math.cos(radians),
+      );
+      const eye = new THREE.Vector3(
+        ground.x,
+        centre.y + tilt.distance * Math.sin(radians),
+        ground.z,
+      );
+      this.viewpoint.setRevealPose(poseLookingAt(eye, centre, tilt.fov), 2.0);
       return;
     }
 

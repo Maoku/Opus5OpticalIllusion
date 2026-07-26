@@ -30,12 +30,17 @@ const LIGHT_ALBEDO = 0.42;
  * 影の中に入ったときの照度の比（実測値）。
  * albedoDark = LIGHT_ALBEDO * ratio とすると、A と B が同じ輝度で描かれる。
  *
- * 校正時の実測（high プリセット / gallery の環境光 / ACES トーンマッピング）:
- *   影の外の明タイル 232 / A（影の外の暗タイル）163 / B（影の中の明タイル）163 /
- *   影の中の暗タイル 60 —— A と B が 1 階調以内で一致している
+ * 校正時の実測（high プリセット / gallery の環境光 / ACES トーンマッピング /
+ * オフスクリーンの WebGLRenderTarget から readRenderTargetPixels で採取）:
+ *   A（影の外の暗タイル）72 / B（影の中の明タイル）72 —— 完全一致。
+ *   正解視点（目線 1.6m）と種明かしの俯瞰視点（3.55m）で **同じ値**。
+ *
+ * 2026.07 に 0.185 から改めた（§11a）。俯瞰の種明かしを入れたことで、
+ * それまで見えていなかった視線依存が表に出たため。下の MeshLambertMaterial
+ * の注記を参照。
  * 後処理を追加したら必ず再校正すること（§8 リスク表「明度系錯視が後処理で壊れる」）。
  */
-const CALIBRATION = 0.185;
+const CALIBRATION = 0.236;
 const DARK_ALBEDO = LIGHT_ALBEDO * CALIBRATION;
 
 /** 影の外の暗いマス */
@@ -94,15 +99,20 @@ function build(ctx: BuildContext): ExhibitInstance {
       (isLightTile(col, row) ? lightGeos : darkGeos).push(g);
     }
   }
-  const lightMaterial = new THREE.MeshStandardMaterial({
+  /**
+   * ★ タイルは MeshLambertMaterial でなければならない（§11a）。
+   *
+   * MeshStandardMaterial は roughness 1 / metalness 0 でも誘電体の鏡面反射
+   * （F0 = 0.04）を持ち、その項は視線方向に依存する。暗いタイルほど鏡面が
+   * 全体に占める割合が大きいので、見下ろすと A だけが暗くなり、A と B の
+   * 一致が崩れる（実測 A 75→66 に対し B 75→74）。
+   * 純拡散の Lambert に替えると、視点を変えても値が 1 階調も動かない。
+   */
+  const lightMaterial = new THREE.MeshLambertMaterial({
     color: new THREE.Color(LIGHT_ALBEDO, LIGHT_ALBEDO, LIGHT_ALBEDO),
-    roughness: 1,
-    metalness: 0,
   });
-  const darkMaterial = new THREE.MeshStandardMaterial({
+  const darkMaterial = new THREE.MeshLambertMaterial({
     color: new THREE.Color(DARK_ALBEDO, DARK_ALBEDO, DARK_ALBEDO),
-    roughness: 1,
-    metalness: 0,
   });
   const lightTiles = new THREE.Mesh(mergeGeometries(lightGeos, false)!, lightMaterial);
   const darkTiles = new THREE.Mesh(mergeGeometries(darkGeos, false)!, darkMaterial);
@@ -113,9 +123,10 @@ function build(ctx: BuildContext): ExhibitInstance {
   for (const g of [...lightGeos, ...darkGeos]) g.dispose();
 
   // --- 影を落とす円柱 -----------------------------------------------------
+  const cylinderMaterial = new THREE.MeshStandardMaterial({ color: 0x5c7a52, roughness: 0.7 });
   const cylinder = new THREE.Mesh(
     new THREE.CylinderGeometry(0.28, 0.28, 0.92, 40),
-    new THREE.MeshStandardMaterial({ color: 0x5c7a52, roughness: 0.7 }),
+    cylinderMaterial,
   );
   cylinder.position.set(BOARD / 2 - 0.25, BOARD_TOP + 0.46, -TILE * 1.5);
   cylinder.castShadow = true;
@@ -153,10 +164,9 @@ function build(ctx: BuildContext): ExhibitInstance {
   const stripLength = a.distanceTo(b) + TILE * 0.9;
   const strip = new THREE.Mesh(
     new THREE.PlaneGeometry(stripLength, TILE * 0.44),
-    new THREE.MeshStandardMaterial({
+    // 帯は暗タイルと同一の見え方でなければならない。材質も揃える
+    new THREE.MeshLambertMaterial({
       color: new THREE.Color(DARK_ALBEDO, DARK_ALBEDO, DARK_ALBEDO),
-      roughness: 1,
-      metalness: 0,
       transparent: true,
       opacity: 0,
     }),
@@ -192,10 +202,19 @@ function build(ctx: BuildContext): ExhibitInstance {
     root,
     setRevealed(_revealed, progress) {
       strip.visible = progress > 0.001;
-      (strip.material as THREE.MeshStandardMaterial).opacity = progress;
+      (strip.material as THREE.MeshLambertMaterial).opacity = progress;
       for (const label of labels) {
         (label.material as THREE.MeshBasicMaterial).opacity = 1 - progress * 0.6;
       }
+      // 見下ろすと円柱が帯の途中に被さる。半透明に落として全長を通す（§11a-3）。
+      // 影そのものは残す（castShadow を切ると A と B の等輝度が崩れる）
+      const transparent = progress > 0.001;
+      // transparent の切り替えはシェーダの作り直しを伴う。フラグを立てないと効かない
+      if (cylinderMaterial.transparent !== transparent) {
+        cylinderMaterial.transparent = transparent;
+        cylinderMaterial.needsUpdate = true;
+      }
+      cylinderMaterial.opacity = 1 - progress * 0.72;
     },
     dispose() {
       removeSpot();
@@ -206,7 +225,7 @@ function build(ctx: BuildContext): ExhibitInstance {
       lightMaterial.dispose();
       darkMaterial.dispose();
       cylinder.geometry.dispose();
-      (cylinder.material as THREE.Material).dispose();
+      cylinderMaterial.dispose();
       strip.geometry.dispose();
       (strip.material as THREE.Material).dispose();
       for (const label of labels) {
@@ -225,6 +244,14 @@ export const checkerShadow: ExhibitDefinition = {
   kind: 'object',
   order: 3,
   reveal: 'strip',
+  /**
+   * 帯を出すだけではカメラが水平のまま。板の全体と A/B・帯が同一画面に
+   * 収まらず、比較できなかった（§11a）。見下ろし 57°——真上まで振ると
+   * 影の帯と円柱の関係が読めなくなるので、そこは残す。
+   */
+  revealCamera: 'tilt',
+  revealTilt: { elevation: 57, distance: 3.3, fov: 44 },
+  revealFocus: { x: 0, y: BOARD_TOP, z: 0 },
   brightnessCritical: true,
   ...pedestal({
     x: -24,
