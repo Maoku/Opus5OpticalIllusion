@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ja } from '../src/i18n/ja';
 import { en } from '../src/i18n/en';
 import { EXHIBITS } from '../src/exhibits/registry';
+import { pseudoLocalise } from '../src/i18n';
+import { collectGlyphs, countCjk } from '../tools/subsetFont';
 
 type Tree = { [key: string]: string | Tree };
 
@@ -89,5 +91,42 @@ describe('exhibit text keys', () => {
     expect(en.exhibits.beuchetChair.title).toBe('Beuchet chair');
     expect(en.exhibits.penroseStairs.title).toBe('Penrose stairs');
     expect(en.exhibits.peripheralDrift.title).toBe('Rotating Snakes');
+  });
+});
+
+// ------------------------------------------------------------- 疑似ロケール
+
+describe('pseudoLocalise', () => {
+  it('lengthens every string by roughly 60% and marks both ends', () => {
+    const out = pseudoLocalise({ a: 'hello', nested: { b: 'x' } });
+    expect(out.a.startsWith('«')).toBe(true);
+    expect(out.a.endsWith('»')).toBe(true);
+    expect(out.a.length).toBeGreaterThan('hello'.length * 1.5);
+    expect(out.nested.b).toContain('x');
+  });
+
+  it('leaves the key structure untouched', () => {
+    const source = ja as unknown as Tree;
+    expect(paths(pseudoLocalise(source))).toEqual(paths(source));
+  });
+});
+
+// --------------------------------------------------- フォントサブセット (§5.3)
+
+describe('collectGlyphs', () => {
+  it('collects every distinct character, sorted by code point', () => {
+    const glyphs = collectGlyphs({ a: 'cab', b: { c: 'ba' } });
+    expect(glyphs).toEqual(['a', 'b', 'c']);
+  });
+
+  it('counts CJK separately, since that is what drives the subset size', () => {
+    expect(countCjk(collectGlyphs({ a: '錯視 illusion' }))).toBe(2);
+  });
+
+  it('keeps the museum inside a subset that can plausibly stay under 50 KB', () => {
+    const glyphs = collectGlyphs(ja as unknown as Tree, en as unknown as Tree);
+    // §5.3 は「使用グリフは数百字程度なので 50KB 以下に収まる」と見積もっている
+    expect(countCjk(glyphs)).toBeLessThan(1200);
+    expect(glyphs.length).toBeGreaterThan(200);
   });
 });
