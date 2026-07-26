@@ -165,11 +165,20 @@ export class ExhibitManager implements Updatable {
     }
     const spot = record.spots[0];
     if (!spot) return;
+    const focus = record.definition.revealFocus;
     const centre = new THREE.Vector3(
       record.definition.position.x,
       record.definition.position.y,
       record.definition.position.z,
     );
+    if (focus) {
+      centre.add(
+        new THREE.Vector3(focus.x, focus.y, focus.z).applyAxisAngle(
+          new THREE.Vector3(0, 1, 0),
+          record.definition.rotationY,
+        ),
+      );
+    }
 
     if (kind === 'orbit') {
       // 正解視点から 72° 回り込む。破綻（桁の切れ目）が見える角度。
@@ -185,10 +194,11 @@ export class ExhibitManager implements Updatable {
       return;
     }
 
-    // topDown: 真上から本当の形を見せる
-    const height = Math.max(4.5, centre.y + 5.5);
-    const eye = new THREE.Vector3(centre.x, height, centre.z + 0.6);
-    this.viewpoint.setRevealPose(poseLookingAt(eye, centre, 58), 2.2);
+    // topDown: 真上から本当の形を見せる。
+    // 部屋の天井（下向きの単面）はカメラが上にあると裏面カリングで消えるため、
+    // 天井より高い位置へ抜けても展示の中身が見える。
+    const eye = new THREE.Vector3(centre.x, centre.y + 7.4, centre.z + 2.4);
+    this.viewpoint.setRevealPose(poseLookingAt(eye, centre, 56), 2.4);
   }
 
   update(dt: number, elapsed: number): void {

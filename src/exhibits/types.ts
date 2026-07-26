@@ -88,6 +88,12 @@ export interface ExhibitDefinition {
   /** kind === 'zone' のとき、進入判定に使う AABB */
   zone?: { min: Vec3Like; max: Vec3Like };
   reveal: RevealKind;
+  /**
+   * カメラ演出（orbit / topDown）が見るべき中心。展示のローカル座標。
+   * 省略すると position が使われる。エイムズの部屋のように「原点が覗き穴で、
+   * 見せたい実体は奥」という展示ではこれが必要になる。
+   */
+  revealFocus?: Vec3Like;
   /** 一覧・順路での並び順 */
   order?: number;
   build(ctx: BuildContext): Promise<ExhibitInstance> | ExhibitInstance;

@@ -1,3 +1,4 @@
+import { amesRoom } from './amesRoom';
 import { cafeWall } from './cafeWall';
 import { checkerShadow } from './checkerShadow';
 import { muellerLyer } from './muellerLyer';
@@ -17,4 +18,5 @@ export const EXHIBITS: readonly ExhibitDefinition[] = [
   checkerShadow,
   penroseTriangle,
   neckerCube,
+  amesRoom,
 ];
