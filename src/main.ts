@@ -20,6 +20,7 @@ import { SettingsMenu } from './ui/SettingsMenu';
 import { TouchActionBar, type TouchActionSpec } from './ui/TouchActionBar';
 import { ViewpointController } from './viewpoint/ViewpointController';
 import { Museum } from './world/Museum';
+import { Signage } from './world/Signage';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
 const overlay = document.querySelector<HTMLElement>('#overlay');
@@ -51,6 +52,18 @@ const exhibits = new ExhibitManager(
 
 // ----------------------------------------------------------------- overlays
 
+const signage = new Signage(app.scene, i18n.t, app.device.isTouch);
+
+/**
+ * ヴィネット。DOM の重ね合わせなので描画コストはゼロ。
+ * ViewSpot にロック中、または明度・色が成立条件の展示を見ている間は外す。
+ * 隅を暗くする処理は、明度の比較を要求する展示（チェッカーシャドウ・D6・
+ * ホロウマスク）の判定を汚しうるため（§8 リスク表）。
+ */
+const vignette = document.createElement('div');
+vignette.className = 'vignette';
+overlay.appendChild(vignette);
+
 const loading = new LoadingScreen(overlay);
 app.assets.events.on('progress', ({ ratio }) => loading.setProgress(ratio * 0.9));
 
@@ -59,6 +72,9 @@ const hintPanel = new HintPanel(overlay, i18n.t, {
   onRevealChange(revealed) {
     const focused = exhibits.focused;
     if (focused) exhibits.setRevealed(focused.definition.id, revealed);
+  },
+  onStageChange(stage) {
+    if (stage !== 'hidden') audio.ui(stage === 'explanation' ? 1040 : 880, 0.09);
   },
 });
 const touchBar = new TouchActionBar(overlay, (action) => input.dispatch(action));
@@ -76,7 +92,9 @@ orientationGate.setEnabled(app.device.isMobileLike);
 // --------------------------------------------------------------------- i18n
 
 function contentFor(record: ExhibitRecord): HintContent {
-  return i18n.t.exhibits[record.definition.textKey];
+  const entry = i18n.t.exhibits[record.definition.textKey];
+  const key = record.definition.noticeTextKey;
+  return key ? { ...entry, notice: i18n.t.ui[key] } : entry;
 }
 
 i18n.subscribe((t: Dictionary, locale: Locale) => {
@@ -88,6 +106,7 @@ i18n.subscribe((t: Dictionary, locale: Locale) => {
   languageSwitch.setLocale(locale);
   hud.setRoomName(museum.currentArea ? t.rooms[museum.currentArea.room] : null);
   // ワールド内の 3D テキストを作り直す（§5.4）
+  signage.setDictionary(t);
   exhibits.setLocaleContent(contentFor);
   const focused = exhibits.focused;
   hintPanel.setContent(focused ? contentFor(focused) : null, focused?.definition.id ?? null);
@@ -193,6 +212,7 @@ function frame(dt: number, elapsed: number): void {
   ) {
     viewpoint.enter(viewpoint.candidate);
     app.device.vibrate(15);
+    audio.ui(660);
   }
   viewpoint.update(dt, state);
   exhibits.update(dt, elapsed);
@@ -219,6 +239,24 @@ function frame(dt: number, elapsed: number): void {
     touchBar.setActions(buildTouchActions(t, hintAvailable, focused));
   }
   orientationGate.setPortrait(app.device.viewport.portrait);
+
+  // --- 演出 -------------------------------------------------------------
+  const brightnessSensitive =
+    viewpoint.isEngaged || focused?.definition.brightnessCritical === true;
+  vignette.classList.toggle('is-off', brightnessSensitive);
+  updateFootsteps();
+}
+
+/** 歩いた距離に応じて足音を鳴らす。歩幅は目線の高さに連動する（D2） */
+let footstepDistance = 0;
+const lastFootstepAt = new THREE.Vector3();
+function updateFootsteps(): void {
+  const stride = 0.78 * player.moveSpeedScale;
+  footstepDistance += player.position.distanceTo(lastFootstepAt);
+  lastFootstepAt.copy(player.position);
+  if (footstepDistance < stride) return;
+  footstepDistance = 0;
+  audio.footstep();
 }
 app.add({ update: frame });
 
@@ -281,6 +319,8 @@ if (import.meta.env.DEV) {
 async function boot(): Promise<void> {
   await i18n.setLocale(resolveInitialLocale());
   await exhibits.load(EXHIBITS);
+  // 板は load() で生まれるので、辞書の配信をもう一度回して文字を焼く
+  exhibits.setLocaleContent(contentFor);
   loading.setProgress(1);
   await loading.ready(i18n.t.meta.enter);
   // 入場を全画面化の成否に待たせない。§4.3 の方針どおり「試すだけ」にして、
@@ -288,7 +328,9 @@ async function boot(): Promise<void> {
   loading.hide();
   app.start();
   // 入場クリックはユーザー操作。ここで autoplay ポリシーを解禁しておく（§4.3 / D4）
-  void audio.resume();
+  void audio.resume().then((ok) => {
+    if (ok) audio.startAmbience();
+  });
   void app.device.tryImmersive(document.documentElement);
 }
 

@@ -10,6 +10,7 @@ import type { Lighting } from '../world/Lighting';
 import type { Collision } from '../world/Collision';
 import type { AudioBus } from '../core/AudioBus';
 import { saturate } from '../utils/math';
+import { createTextPlate, type TextPlate } from '../world/TextPlate';
 import type {
   ExhibitDefinition,
   ExhibitFlags,
@@ -27,6 +28,8 @@ export interface ExhibitRecord {
   definition: ExhibitDefinition;
   instance: ExhibitInstance;
   spots: ViewSpot[];
+  /** 展示名とキャプションを刻んだワールド内の板 */
+  plate: TextPlate | null;
   override: PlayerOverrideHandle;
   distance: number;
   visible: boolean;
@@ -56,6 +59,7 @@ export class ExhibitManager implements Updatable {
   readonly #group = new THREE.Group();
   readonly #raycaster = new THREE.Raycaster();
   readonly #ndc = new THREE.Vector2();
+  readonly #plateposts: THREE.Mesh[] = [];
   #focused: ExhibitRecord | null = null;
 
   /** 展示が参照を持ち続ける。値の差し替えではなく中身の書き換えで伝える */
@@ -130,6 +134,7 @@ export class ExhibitManager implements Updatable {
       definition,
       instance,
       spots,
+      plate: this.#createPlate(definition, spots),
       override,
       distance: Infinity,
       visible: true,
@@ -151,6 +156,8 @@ export class ExhibitManager implements Updatable {
     this.collision.removeByTag(id);
     this.viewpoint.removeByExhibit(id);
     for (const spot of record.spots) spot.dispose();
+    record.plate?.dispose();
+    record.plate?.root.removeFromParent();
     record.instance.dispose();
     record.instance.root.removeFromParent();
     this.records.delete(id);
@@ -160,8 +167,57 @@ export class ExhibitManager implements Updatable {
   /** 言語切替。ワールド内の 3D テキストを作り直す（§5.4） */
   setLocaleContent(resolve: (record: ExhibitRecord) => HintContent): void {
     for (const record of this.records.values()) {
-      record.instance.setLocale?.(resolve(record));
+      const content = resolve(record);
+      record.instance.setLocale?.(content);
+      record.plate?.setLines([
+        { text: content.title, weight: 'title' },
+        ...(content.caption ? [{ text: content.caption, weight: 'body' as const }] : []),
+        ...(content.notice ? [{ text: content.notice, weight: 'note' as const }] : []),
+      ]);
     }
+  }
+
+  /**
+   * キャプションプレートは展示ごとに書かず、ここでまとめて立てる。
+   * 置き場所は「視点マーカーに立ったとき、右手側に来る」位置。
+   * ViewSpot を持たないゾーン型展示は、展示の中心の手前に置く。
+   */
+  #createPlate(definition: ExhibitDefinition, spots: ViewSpot[]): TextPlate | null {
+    const plate = createTextPlate({ width: 0.7, height: 0.44, scale: 0.62 });
+    const centre = new THREE.Vector3(
+      definition.position.x,
+      definition.position.y,
+      definition.position.z,
+    );
+    const spot = spots[0];
+    if (spot) {
+      const toExhibit = centre.clone().sub(spot.standAt).setY(0).normalize();
+      const right = new THREE.Vector3(-toExhibit.z, 0, toExhibit.x);
+      plate.root.position
+        .copy(spot.standAt)
+        .addScaledVector(right, 0.95)
+        .addScaledVector(toExhibit, 0.5);
+      plate.root.position.y = 1.02;
+      // 立ち位置のほうを向ける
+      plate.root.rotation.y = Math.atan2(-right.x, -right.z);
+    } else {
+      plate.root.position.set(centre.x + 1.05, 1.02, centre.z + 3.4);
+      plate.root.rotation.y = Math.PI * 0.85;
+    }
+    plate.root.rotation.x = -0.28;
+
+    // 板を支える細い脚
+    const post = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.018, 0.026, 1.02, 10),
+      new THREE.MeshStandardMaterial({ color: 0x1a1d24, roughness: 0.75 }),
+    );
+    post.position.set(plate.root.position.x, 0.51, plate.root.position.z);
+    post.castShadow = true;
+    this.#group.add(post);
+    this.#plateposts.push(post);
+
+    this.#group.add(plate.root);
+    return plate;
   }
 
   setRevealed(id: ExhibitId, revealed: boolean): void {
@@ -244,6 +300,11 @@ export class ExhibitManager implements Updatable {
 
   dispose(): void {
     for (const id of [...this.records.keys()]) this.remove(id);
+    for (const post of this.#plateposts.splice(0)) {
+      post.geometry.dispose();
+      (post.material as THREE.Material).dispose();
+      post.removeFromParent();
+    }
     // 保険: 何かが漏れていても身体改変は必ず巻き戻す
     this.player.releaseAllOverrides();
     this.#group.removeFromParent();

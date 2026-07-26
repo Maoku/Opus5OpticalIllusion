@@ -35,6 +35,11 @@ export const ja = {
     orientationTitle: '横向きにしてください',
     orientationBody: '端末を横に持つと展示が見やすくなります。縦のままでも鑑賞できます。',
     audioEnable: '音を有効にする',
+    entranceTitle: '錯視のミュージアム',
+    entranceBody:
+      '床の光る円に立つと、その展示が「効く」視点に移ります。\nヒントは伏せてあります。まず自分の目で見てください。',
+    entranceControls: '移動 WASD ／ 視点 マウス ／ 決定 F ／ ヒント H ／ 一覧 Tab',
+    entranceControlsTouch: '左半分で移動 ／ 右半分で視点 ／ ボタンで決定とヒント',
     brightnessNotice: '画面の明るさの自動調整をお切りください。',
   },
   rooms: {

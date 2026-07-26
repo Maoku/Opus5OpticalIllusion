@@ -639,3 +639,30 @@ body {
 .hud-toast.is-visible {
   opacity: 1;
 }
+
+/* ------------------------------------------------------------- vignette */
+
+/*
+  §Phase 7「軽い後処理: Vignette 程度」。
+  WebGL の後処理パスではなく DOM の重ね合わせで実装している。
+  描画コストがゼロで、かつ明度系の錯視を見ている間だけ確実に外せるため。
+  Bloom は明度知覚を壊すので不採用（計画どおり）。
+*/
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    rgb(0 0 0 / 0%) 42%,
+    rgb(0 0 0 / 26%) 80%,
+    rgb(0 0 0 / 46%) 100%
+  );
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+/* 明度・色が成立条件の展示を見ている間は完全に外す（§8 リスク表） */
+.vignette.is-off {
+  opacity: 0;
+}

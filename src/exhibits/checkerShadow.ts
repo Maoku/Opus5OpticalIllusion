@@ -225,6 +225,7 @@ export const checkerShadow: ExhibitDefinition = {
   kind: 'object',
   order: 3,
   reveal: 'strip',
+  brightnessCritical: true,
   ...pedestal({
     x: -24,
     z: -7,

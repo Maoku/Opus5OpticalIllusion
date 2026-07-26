@@ -158,6 +158,7 @@ export const hollowMask: ExhibitDefinition = {
   kind: 'object',
   order: 13,
   reveal: 'orbit',
+  brightnessCritical: true,
   ...pedestal({
     x: POSITION.x,
     z: POSITION.z,

@@ -66,6 +66,8 @@ export interface HintContent {
   reference?: string;
   /** ワールド内のキャプションプレートに刻む文 */
   caption?: string;
+  /** キャプションに添える注意書き（D6 の画面輝度など、§4.5） */
+  notice?: string;
   /** D1 専用: 字が結ばれた後に出すグロスラベル。ja では空文字（§5.4） */
   glyphGloss?: string;
 }
@@ -101,6 +103,13 @@ export interface ExhibitDefinition {
    * HUD とタッチ UI に出す文言のキーを指定する（D4 の「音を有効にする」など）。
    */
   interactTextKey?: keyof Dictionary['ui'];
+  /** キャプションプレートに添える注意書きのキー（§4.5 の展示別対応） */
+  noticeTextKey?: keyof Dictionary['ui'];
+  /**
+   * 明度・色そのものが錯視の成立条件である展示。
+   * ヴィネットなどの後処理を、この展示を見ている間は無効化する（§8 リスク表）。
+   */
+  brightnessCritical?: boolean;
   /** 一覧・順路での並び順 */
   order?: number;
   build(ctx: BuildContext): Promise<ExhibitInstance> | ExhibitInstance;

@@ -37,6 +37,11 @@ export const en: Dictionary = {
     orientationBody:
       'Landscape gives the exhibits more room. You can keep browsing in portrait if you prefer.',
     audioEnable: 'Enable sound',
+    entranceTitle: 'Optical Illusion Museum',
+    entranceBody:
+      'Stand on a glowing circle on the floor and you will be moved to the viewpoint where that exhibit works.\nHints stay hidden. Look with your own eyes first.',
+    entranceControls: 'Move WASD / Look Mouse / Select F / Hint H / Exhibits Tab',
+    entranceControlsTouch: 'Left half to move / Right half to look / Buttons to select and hint',
     brightnessNotice: 'Please turn off automatic screen brightness.',
   },
   rooms: {

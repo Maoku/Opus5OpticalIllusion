@@ -145,6 +145,9 @@ export const underTheStripes: ExhibitDefinition = {
   kind: 'object',
   order: 20,
   reveal: 'fadeContext',
+  // §4.5: 端末の色再現・自動輝度調整に左右されるため、キャプションで注意を促す
+  noticeTextKey: 'brightnessNotice',
+  brightnessCritical: true,
   ...pedestal({
     x: POSITION.x,
     z: POSITION.z,
