@@ -176,6 +176,50 @@ describe('HintPanel staged disclosure', () => {
     expect(textOf(s.root, '.hint-notice')).toBe('');
   });
 
+  /**
+   * §8a: スマホではパネルが展示に被る。閉じると reveal も巻き戻るので、
+   * 「本文だけ退ける」段を挟む。
+   */
+  it('collapses the body without rolling the reveal back', () => {
+    s.panel.setContent(CONTENT);
+    s.panel.setAvailable(true);
+    s.panel.advance();
+    s.panel.advance();
+    s.onRevealChange.mockClear();
+    s.panel.toggleCollapsed();
+    expect(s.panel.isCollapsed).toBe(true);
+    expect(s.panel.stage).toBe('explanation');
+    expect(panelEl(s.root).hidden).toBe(false);
+    expect(panelEl(s.root).classList.contains('is-collapsed')).toBe(true);
+    expect(s.root.querySelector<HTMLElement>('.hint-scroll')!.hidden).toBe(true);
+    expect(textOf(s.root, '.hint-explanation')).toBe('');
+    expect(s.onRevealChange).not.toHaveBeenCalled();
+    // 操作は畳んだままでも押せる（畳んで見てから元に戻す導線）
+    expect(s.root.querySelector<HTMLElement>('.hint-next')!.hidden).toBe(false);
+  });
+
+  it('expands again and restores the text', () => {
+    s.panel.setContent(CONTENT);
+    s.panel.setAvailable(true);
+    s.panel.advance();
+    s.panel.toggleCollapsed();
+    s.panel.toggleCollapsed();
+    expect(s.panel.isCollapsed).toBe(false);
+    expect(textOf(s.root, '.hint-appearance')).toBe(CONTENT.appearance);
+    expect(s.root.querySelector('.hint-collapse')!.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('opens expanded again after being closed while collapsed', () => {
+    s.panel.setContent(CONTENT);
+    s.panel.setAvailable(true);
+    s.panel.advance();
+    s.panel.toggleCollapsed();
+    s.panel.close();
+    s.panel.advance();
+    expect(s.panel.isCollapsed).toBe(false);
+    expect(textOf(s.root, '.hint-appearance')).toBe(CONTENT.appearance);
+  });
+
   // §9a: 閉じたあとフォーカスがヒントボタンに残ると WASD が死ぬ
   it('returns focus to the scene when closed, not to the hint button', () => {
     const canvas = document.createElement('canvas');

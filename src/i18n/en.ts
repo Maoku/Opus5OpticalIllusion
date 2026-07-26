@@ -39,6 +39,8 @@ export const en: Dictionary = {
     entranceTitle: 'Optical Illusion Museum',
     entranceBody:
       'Stand on a glowing circle on the floor and you will be moved to the viewpoint where that exhibit works.\nHints stay hidden. Look with your own eyes first.',
+    collapseHint: 'Collapse',
+    expandHint: 'Expand',
     padMoveLabel: 'Move: drag the lower-left of the screen',
     padLookLabel: 'Look: drag the right of the screen',
     brightnessNotice: 'Please turn off automatic screen brightness.',

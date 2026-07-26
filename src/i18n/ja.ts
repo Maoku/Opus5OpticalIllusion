@@ -37,6 +37,8 @@ export const ja = {
     entranceTitle: '錯視のミュージアム',
     entranceBody:
       '床の光る円に立つと、その展示が「効く」視点に移ります。\nヒントは伏せてあります。まず自分の目で見てください。',
+    collapseHint: '折りたたむ',
+    expandHint: '広げる',
     padMoveLabel: '移動: 画面左下をドラッグ',
     padLookLabel: '視点: 画面右側をドラッグ',
     brightnessNotice: '画面の明るさの自動調整をお切りください。',

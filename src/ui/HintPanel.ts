@@ -26,6 +26,10 @@ export class HintPanel {
 
   readonly #panel: HTMLDivElement;
   readonly #title: HTMLHeadingElement;
+  /** §8a: スマホでは本文が展示に被る。畳んでタイトルと操作だけにする */
+  readonly #collapse: HTMLButtonElement;
+  readonly #collapseIcon: HTMLSpanElement;
+  readonly #scroll: HTMLDivElement;
   /** §12a: 撤去したキャプション板の文言。第 1 段階から読める */
   readonly #caption: HTMLParagraphElement;
   /** §12a: 「スクリーンショットでは伝わりません」等の注意書き */
@@ -42,6 +46,7 @@ export class HintPanel {
   readonly #close: HTMLButtonElement;
 
   #stage: HintStage = 'hidden';
+  #collapsed = false;
   #content: HintContent | null = null;
   #contentKey: string | null = null;
   #available = false;
@@ -58,7 +63,12 @@ export class HintPanel {
     this.el.innerHTML = `
       <button class="hint-open" type="button" hidden></button>
       <div class="hint-panel" role="dialog" aria-modal="false" hidden>
-        <h2 class="hint-title"></h2>
+        <div class="hint-head">
+          <h2 class="hint-title"></h2>
+          <button class="hint-collapse" type="button" aria-expanded="true">
+            <span class="hint-collapse-icon" aria-hidden="true">▾</span>
+          </button>
+        </div>
         <div class="hint-scroll">
           <p class="hint-caption"></p>
           <p class="hint-notice"></p>
@@ -82,6 +92,9 @@ export class HintPanel {
     this.button = this.el.querySelector('.hint-open')!;
     this.#panel = this.el.querySelector('.hint-panel')!;
     this.#title = this.el.querySelector('.hint-title')!;
+    this.#collapse = this.el.querySelector('.hint-collapse')!;
+    this.#collapseIcon = this.el.querySelector('.hint-collapse-icon')!;
+    this.#scroll = this.el.querySelector('.hint-scroll')!;
     this.#caption = this.el.querySelector('.hint-caption')!;
     this.#notice = this.el.querySelector('.hint-notice')!;
     this.#appearanceHeading = this.el.querySelector('.hint-heading-appearance')!;
@@ -96,6 +109,7 @@ export class HintPanel {
     this.#close = this.el.querySelector('.hint-close')!;
 
     this.button.addEventListener('click', () => this.advance());
+    this.#collapse.addEventListener('click', () => this.toggleCollapsed());
     this.#next.addEventListener('click', () => this.advance());
     this.#close.addEventListener('click', () => this.close());
     this.#panel.addEventListener('keydown', (e) => {
@@ -114,6 +128,11 @@ export class HintPanel {
 
   get isOpen(): boolean {
     return this.#stage !== 'hidden';
+  }
+
+  /** 畳んでいる間も stage は保たれる（reveal 演出は出したまま本文だけ退ける） */
+  get isCollapsed(): boolean {
+    return this.#collapsed;
   }
 
   setDictionary(t: Dictionary): void {
@@ -167,6 +186,22 @@ export class HintPanel {
     else this.close();
   }
 
+  /**
+   * 本文の折りたたみ（§8a）。
+   *
+   * スマホでは開いたパネルが展示そのものを覆う。閉じてしまうと reveal 演出も
+   * 巻き戻るので、「読むのをやめる」ためのもう一段を用意する。
+   */
+  setCollapsed(collapsed: boolean): void {
+    if (collapsed === this.#collapsed) return;
+    this.#collapsed = collapsed;
+    this.#render();
+  }
+
+  toggleCollapsed(): void {
+    this.setCollapsed(!this.#collapsed);
+  }
+
   dispose(): void {
     this.el.remove();
   }
@@ -177,6 +212,8 @@ export class HintPanel {
     if (stage === this.#stage) return;
     const wasRevealed = this.#stage === 'explanation';
     this.#stage = stage;
+    // 畳んだまま閉じたことを次の展示へ持ち越さない。開くときは必ず本文から
+    if (stage === 'hidden') this.#collapsed = false;
     const isRevealed = stage === 'explanation';
     if (wasRevealed !== isRevealed) this.options.onRevealChange(isRevealed);
     this.options.onStageChange?.(stage);
@@ -198,6 +235,15 @@ export class HintPanel {
     this.#panel.hidden = !open;
     // 非表示のときは支援技術からも隠す（初期状態は「完全非表示」）
     this.#panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+
+    const collapsed = this.#collapsed;
+    this.#panel.classList.toggle('is-collapsed', collapsed);
+    // 畳んだ本文は支援技術からも外す。読み上げだけ残ると畳んだ意味がない
+    this.#scroll.hidden = collapsed;
+    this.#collapse.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    this.#collapse.setAttribute('aria-label', collapsed ? t.ui.expandHint : t.ui.collapseHint);
+    this.#collapse.title = collapsed ? t.ui.expandHint : t.ui.collapseHint;
+    this.#collapseIcon.textContent = collapsed ? '▴' : '▾';
     if (!content) return;
 
     this.#title.textContent = content.title;

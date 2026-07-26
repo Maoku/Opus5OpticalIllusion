@@ -498,15 +498,65 @@ body {
   display: none;
 }
 
+.hint-head {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin-bottom: 0.7rem;
+}
+
 .hint-title {
-  margin: 0 0 0.7rem;
+  flex: 1;
+  margin: 0;
   font-size: 1.02rem;
   letter-spacing: 0.02em;
+}
+
+/* §8a: 本文を畳むトグル。展示に被ったまま読み終えられない状況の逃げ道 */
+.hint-collapse {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  margin: -0.2rem -0.3rem 0 0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: #aab1bd;
+  background: rgb(255 255 255 / 6%);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.hint-collapse:hover,
+.hint-collapse:focus-visible {
+  color: #e8eaf0;
+  background: rgb(255 255 255 / 12%);
 }
 
 .hint-scroll {
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* 畳んだ状態: タイトル行と操作ボタンだけを残す */
+.hint-panel.is-collapsed {
+  max-height: none;
+}
+
+.hint-panel.is-collapsed .hint-head {
+  margin-bottom: 0;
+}
+
+.hint-panel.is-collapsed .hint-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.hint-panel.is-collapsed .hint-actions {
+  margin-top: 0.7rem;
 }
 
 .hint-heading {
@@ -809,6 +859,70 @@ body {
   opacity: 0;
 }
 
+/* --------------------------------------------------------------- スマホ全般 */
+
+/*
+  §8a: 小さい画面では、開いたヒントパネルが展示そのものを覆ってしまう。
+  文字を一段落として面積を詰め、それでも足りないぶんは折りたたみ（.is-collapsed）
+  で退かせる。閉じる（close）と違い reveal 演出は出したまま残る。
+*/
+@media (max-width: 560px), (pointer: coarse) and (max-width: 900px) {
+  .hint-panel {
+    width: min(320px, calc(100vw - 24px));
+    max-height: min(46dvh, 320px);
+    padding: 0.75rem 0.85rem 0.65rem;
+  }
+
+  .hint-head {
+    margin-bottom: 0.55rem;
+  }
+
+  .hint-title {
+    font-size: 0.9rem;
+  }
+
+  /* 指で押せる大きさを確保する（44px 弱まで詰めない） */
+  .hint-collapse {
+    width: 2.3rem;
+    height: 2.3rem;
+    font-size: 0.95rem;
+  }
+
+  .hint-text {
+    font-size: 0.78rem;
+    line-height: 1.6;
+  }
+
+  .hint-caption,
+  .hint-notice {
+    margin-bottom: 0.6rem;
+    font-size: 0.74rem;
+  }
+
+  .hint-reference {
+    font-size: 0.7rem;
+  }
+
+  .hint-heading {
+    margin: 0.6rem 0 0.25rem;
+    font-size: 0.66rem;
+  }
+
+  .hint-actions {
+    margin-top: 0.7rem;
+  }
+
+  .hint-actions button {
+    padding: 0.6em 0.7em;
+    font-size: 0.78rem;
+  }
+
+  .hint-open {
+    padding: 0.66em 1.15em;
+    font-size: 0.84rem;
+  }
+}
+
 /* ------------------------------------------------- 短い画面（横持ちスマホ） */
 
 /*
@@ -818,14 +932,17 @@ body {
 */
 @media (max-height: 480px) {
   .hint-panel {
-    width: min(360px, calc(100vw - 28px));
-    max-height: calc(100dvh - 96px);
-    padding: 0.8rem 0.9rem 0.7rem;
+    width: min(320px, calc(100vw - 28px));
+    max-height: min(58dvh, 260px);
+    padding: 0.75rem 0.85rem 0.65rem;
+  }
+
+  .hint-head {
+    margin-bottom: 0.5rem;
   }
 
   .hint-title {
-    margin-bottom: 0.5rem;
-    font-size: 0.92rem;
+    font-size: 0.9rem;
   }
 
   .hint-text {
