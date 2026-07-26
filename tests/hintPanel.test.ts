@@ -152,6 +152,30 @@ describe('HintPanel staged disclosure', () => {
     expect(s.root.querySelector('.hint-next')!.textContent).toBe('Show me why');
   });
 
+  /**
+   * §12a: 3D 空間のキャプション板を撤去した。その文言と注意書きを
+   * 受け取るのはここだけなので、第 1 段階から読めなければ情報が消える。
+   */
+  it('carries the caption and notice from the removed world plates', () => {
+    s.panel.setContent({
+      ...CONTENT,
+      caption: '目地の明るさが、傾きを作る。',
+      notice: 'この展示はスクリーンショットでは伝わりません。',
+    });
+    s.panel.setAvailable(true);
+    s.panel.advance();
+    expect(textOf(s.root, '.hint-caption')).toBe('目地の明るさが、傾きを作る。');
+    expect(textOf(s.root, '.hint-notice')).toBe('この展示はスクリーンショットでは伝わりません。');
+  });
+
+  it('hides the caption and notice for exhibits that have none', () => {
+    s.panel.setContent(CONTENT);
+    s.panel.setAvailable(true);
+    s.panel.advance();
+    expect(textOf(s.root, '.hint-caption')).toBe('');
+    expect(textOf(s.root, '.hint-notice')).toBe('');
+  });
+
   // §9a: 閉じたあとフォーカスがヒントボタンに残ると WASD が死ぬ
   it('returns focus to the scene when closed, not to the hint button', () => {
     const canvas = document.createElement('canvas');

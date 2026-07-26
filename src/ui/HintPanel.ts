@@ -26,6 +26,10 @@ export class HintPanel {
 
   readonly #panel: HTMLDivElement;
   readonly #title: HTMLHeadingElement;
+  /** §12a: 撤去したキャプション板の文言。第 1 段階から読める */
+  readonly #caption: HTMLParagraphElement;
+  /** §12a: 「スクリーンショットでは伝わりません」等の注意書き */
+  readonly #notice: HTMLParagraphElement;
   readonly #appearanceHeading: HTMLHeadingElement;
   readonly #appearance: HTMLParagraphElement;
   readonly #explanationBlock: HTMLDivElement;
@@ -56,6 +60,8 @@ export class HintPanel {
       <div class="hint-panel" role="dialog" aria-modal="false" hidden>
         <h2 class="hint-title"></h2>
         <div class="hint-scroll">
+          <p class="hint-caption"></p>
+          <p class="hint-notice"></p>
           <h3 class="hint-heading hint-heading-appearance"></h3>
           <p class="hint-text hint-appearance"></p>
           <div class="hint-explanation-block" hidden>
@@ -76,6 +82,8 @@ export class HintPanel {
     this.button = this.el.querySelector('.hint-open')!;
     this.#panel = this.el.querySelector('.hint-panel')!;
     this.#title = this.el.querySelector('.hint-title')!;
+    this.#caption = this.el.querySelector('.hint-caption')!;
+    this.#notice = this.el.querySelector('.hint-notice')!;
     this.#appearanceHeading = this.el.querySelector('.hint-heading-appearance')!;
     this.#appearance = this.el.querySelector('.hint-appearance')!;
     this.#explanationBlock = this.el.querySelector('.hint-explanation-block')!;
@@ -193,6 +201,11 @@ export class HintPanel {
     if (!content) return;
 
     this.#title.textContent = content.title;
+    // §12a: 3D 空間のキャプション板を撤去したぶん、ここが唯一の受け皿になる
+    this.#caption.textContent = content.caption ?? '';
+    this.#caption.hidden = !content.caption;
+    this.#notice.textContent = content.notice ?? '';
+    this.#notice.hidden = !content.notice;
     this.#appearance.textContent = content.appearance;
 
     const explained = this.#stage === 'explanation';

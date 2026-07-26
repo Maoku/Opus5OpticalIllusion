@@ -101,11 +101,25 @@ body {
 }
 
 .loading-title {
-  margin: 0 0 1.6rem;
+  margin: 0 0 0.9rem;
   font-size: clamp(1.1rem, 3.6vw, 1.6rem);
   font-weight: 500;
   letter-spacing: 0.14em;
   color: #e8eaf0;
+}
+
+/* §12a: 撤去したエントランスの案内板の受け皿。入館時に一度だけ読ませる */
+.loading-intro {
+  margin: 0 0 1.5rem;
+  font-size: 0.84rem;
+  line-height: 1.85;
+  text-align: left;
+  white-space: pre-line;
+  color: #a9afba;
+}
+
+.loading-intro:empty {
+  display: none;
 }
 
 .loading-bar {
@@ -359,6 +373,29 @@ body {
 }
 
 /*
+  注視中の展示名（§12a）。3D 空間のキャプション板を撤去したので、
+  「いま何を見ているか」を答えるのはここだけ。全文はヒントで読める。
+*/
+.hud-exhibit {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 30%);
+  transform: translateX(-50%);
+  max-width: 80vw;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: #e8eaf0;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 80%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.hud-exhibit.is-visible {
+  opacity: 1;
+}
+
+/*
   常設のキーガイド（§9b-1）。
   ポインタロック中はカーソルが消えるので、UI がキーで操作できることを
   画面に出し続ける。読めるが主張しない濃度に抑える。
@@ -485,6 +522,25 @@ body {
   font-size: 0.75rem;
   line-height: 1.65;
   color: #99a0ae;
+}
+
+/* §12a: 撤去したキャプション板の文言と注意書き */
+.hint-caption {
+  margin: 0 0 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: #99a0ae;
+}
+
+.hint-notice {
+  margin: 0 0 0.9rem;
+  padding: 0.4em 0.7em;
+  font-size: 0.76rem;
+  line-height: 1.65;
+  color: #f0d9a8;
+  background: rgb(240 217 168 / 9%);
+  border-left: 2px solid rgb(240 217 168 / 45%);
+  border-radius: 3px;
 }
 
 .hint-actions {

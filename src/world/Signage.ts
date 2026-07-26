@@ -3,10 +3,16 @@ import type { Dictionary } from '../i18n';
 import { createTextPlate, type TextPlate, type TextPlateLine } from './TextPlate';
 
 /**
- * エントランスの案内板と、出入口の上の部屋名サイン（Phase 7）。
+ * 出入口の上の部屋名サイン（Phase 7 / §12a）。
  *
- * DoD「初回訪問者が説明なしでエントランス→展示→ヒント表示まで到達できる」を
- * 担うのがここ。順路が読めることと、操作が最初に一度だけ提示されることの 2 点に絞る。
+ * §12a で 3D 空間から**説明文を全て撤去した**。自立式の案内板と展示ごとの
+ * キャプション板は無くなり、ここに残るのは部屋名だけ。
+ * 部屋名は説明ではなく順路案内であり、撤去すると順路が読めなくなる（決定事項 A）。
+ *
+ * 失われた情報の行き先:
+ *   展示名・キャプション・注意書き → ヒントパネル（HintPanel）
+ *   操作説明 → HUD の常設キーガイド ＋ 設定メニューの「操作方法」
+ *   入館時の導入文 → ローディング／入場画面（LoadingScreen）
  *
  * §5.4: 言語切替でワールド内テキストは作り直しになる。setDictionary() が全板を描き直す。
  */
@@ -14,29 +20,10 @@ export class Signage {
   readonly group = new THREE.Group();
   readonly #plates: Array<{ plate: TextPlate; render: (t: Dictionary) => TextPlateLine[] }> = [];
   readonly #posts: THREE.Mesh[] = [];
-  #touch = false;
 
-  constructor(scene: THREE.Scene, dictionary: Dictionary, touch: boolean) {
+  constructor(scene: THREE.Scene, dictionary: Dictionary) {
     this.group.name = 'signage';
-    this.#touch = touch;
     scene.add(this.group);
-
-    // --- エントランスの案内板 ---------------------------------------------
-    // 壁掛けだと入場位置から画角の外に出てしまうので、自立式にして
-    // 入場地点（0, 23）のほうへ少し振る
-    this.#add(
-      { width: 2.0, height: 1.2, post: 0.86, scale: 1.2 },
-      { x: -2.2, y: 1.46, z: 18.0 },
-      0.3,
-      (t) => [
-        { text: t.ui.entranceTitle, weight: 'title' as const },
-        { text: t.ui.entranceBody, weight: 'body' as const },
-        {
-          text: this.#touch ? t.ui.entranceControlsTouch : t.ui.entranceControls,
-          weight: 'note' as const,
-        },
-      ],
-    );
 
     // --- 出入口の上の部屋名サイン -----------------------------------------
     const sign = { width: 2.0, height: 0.36, scale: 2.4 };
@@ -58,10 +45,6 @@ export class Signage {
     ]);
 
     this.setDictionary(dictionary);
-  }
-
-  setTouch(touch: boolean): void {
-    this.#touch = touch;
   }
 
   setDictionary(t: Dictionary): void {

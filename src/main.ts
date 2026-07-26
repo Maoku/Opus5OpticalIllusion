@@ -59,7 +59,8 @@ const exhibits = new ExhibitManager(
 
 // ----------------------------------------------------------------- overlays
 
-const signage = new Signage(app.scene, i18n.t, app.device.isTouch);
+// §12a: 3D 空間に残る文字は扉上の部屋名だけ。説明文は全て UI へ移した
+const signage = new Signage(app.scene, i18n.t);
 
 /**
  * ヴィネット。DOM の重ね合わせなので描画コストはゼロ。
@@ -97,6 +98,14 @@ orientationGate.setEnabled(app.device.isMobileLike);
 
 // --------------------------------------------------------------------- i18n
 
+/**
+ * 注視中の展示名。HUD に小さく出す唯一の在庫（§12a）。
+ *
+ * i18n.subscribe() は購読と同時に一度呼ばれるので、宣言はその前に置くこと。
+ * 後ろに置くと TDZ で起動そのものが落ちる。
+ */
+let focusedTitle: string | null = null;
+
 function contentFor(record: ExhibitRecord): HintContent {
   const entry = i18n.t.exhibits[record.definition.textKey];
   const key = record.definition.noticeTextKey;
@@ -115,8 +124,10 @@ i18n.subscribe((t: Dictionary, locale: Locale) => {
   hud.setRoomName(museum.currentArea ? t.rooms[museum.currentArea.room] : null);
   // ワールド内の 3D テキストを作り直す（§5.4）
   signage.setDictionary(t);
+  loading.setIntro(t.ui.entranceTitle, t.ui.entranceBody);
   exhibits.setLocaleContent(contentFor);
   const focused = exhibits.focused;
+  focusedTitle = focused ? contentFor(focused).title : null;
   hintPanel.setContent(focused ? contentFor(focused) : null, focused?.definition.id ?? null);
 });
 
@@ -157,9 +168,11 @@ museum.onAreaChange((area) => {
   // 明順応の落差を予告する（§12c-3）。アルコーブだけ極端に暗い
   if (area?.id === 'roomDAlcove') hud.showToast(i18n.t.ui.darkRoomAhead, 4500);
 });
-exhibits.events.on('focusChanged', (record) =>
-  hintPanel.setContent(record ? contentFor(record) : null, record?.definition.id ?? null),
-);
+exhibits.events.on('focusChanged', (record) => {
+  const content = record ? contentFor(record) : null;
+  focusedTitle = content?.title ?? null;
+  hintPanel.setContent(content, record?.definition.id ?? null);
+});
 input.events.on('activeSourceChanged', (source) => hud.setActiveSource(source));
 hud.setActiveSource(input.activeSource);
 
@@ -250,6 +263,8 @@ function frame(dt: number, elapsed: number): void {
   const t = i18n.t;
   hud.setPrompt(promptFor(t, focused));
   hud.setKeyHints(keyHintsFor(t, uiOpen, hintAvailable));
+  // 展示名だけを小さく出す。全文はヒントを開くと読める（§12a）
+  hud.setExhibitName(uiOpen ? null : focusedTitle);
   if (app.device.isTouch) {
     // ヒントを開いている間は文脈ボタンを引っ込める。パネルの上に重なると
     // 解説が読めなくなる（横持ちスマホは高さが 375px しかない）

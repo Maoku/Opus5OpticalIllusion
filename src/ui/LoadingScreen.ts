@@ -8,6 +8,8 @@ export class LoadingScreen {
   readonly #bar: HTMLDivElement;
   readonly #label: HTMLDivElement;
   readonly #enter: HTMLButtonElement;
+  readonly #title: HTMLHeadingElement;
+  readonly #intro: HTMLParagraphElement;
   #ratio = 0;
 
   constructor(parent: HTMLElement) {
@@ -16,6 +18,7 @@ export class LoadingScreen {
     this.el.innerHTML = `
       <div class="loading-inner">
         <h1 class="loading-title">Optical Illusion Museum</h1>
+        <p class="loading-intro"></p>
         <div class="loading-bar"><div class="loading-bar-fill"></div></div>
         <div class="loading-label">0%</div>
         <button class="loading-enter" type="button" hidden></button>
@@ -23,7 +26,21 @@ export class LoadingScreen {
     this.#bar = this.el.querySelector('.loading-bar-fill')!;
     this.#label = this.el.querySelector('.loading-label')!;
     this.#enter = this.el.querySelector('.loading-enter')!;
+    this.#title = this.el.querySelector('.loading-title')!;
+    this.#intro = this.el.querySelector('.loading-intro')!;
     parent.appendChild(this.el);
+  }
+
+  /**
+   * 入館時の導入文（§12a）。
+   *
+   * エントランスの自立案内板を撤去したので、その内容はここで一度だけ出す。
+   * 3D 空間に説明文を置かない、という方針の受け皿。
+   */
+  setIntro(title: string, body: string): void {
+    this.#title.textContent = title;
+    // 案内板と同じく、改行はそのまま活かす
+    this.#intro.textContent = body;
   }
 
   setProgress(ratio: number): void {
