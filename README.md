@@ -1,6 +1,10 @@
 # Optical Illusion Museum（錯視のミュージアム）
 
+![錯視美術館](./scene.jpg)
+
 Claude Opus 5 high 製のブラウザで歩き回れる 3D 錯視ミュージアム。
+
+体験ページ： https://maoku.github.io/Opus5OpticalIllusion/
 
 
 館内には 17 の展示が並び、それぞれ「立って見るべき場所」から覗くと錯視が成立します。
