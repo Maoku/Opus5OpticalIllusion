@@ -35,10 +35,11 @@ export function applyQuality(renderer: THREE.WebGLRenderer, preset: QualityPrese
   const dpr = Math.min(window.devicePixelRatio || 1, preset.maxPixelRatio);
   renderer.setPixelRatio(dpr);
 
-  const shadows = preset.shadowMapSize > 0;
-  renderer.shadowMap.enabled = shadows;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  // shadowMap.enabled を切り替えたらマテリアルの再コンパイルが要る
+  // §4.4 の例外: チェッカーシャドウとホロウマスクは影が錯視の成立条件なので、
+  // low プリセットでも影自体は有効なままにする。コストはライトごとの
+  // castShadow と影マップ解像度で削る（Lighting 側の責務）。
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = preset.shadowMapSize > 0 ? THREE.PCFSoftShadowMap : THREE.BasicShadowMap;
   renderer.shadowMap.needsUpdate = true;
 }
 

@@ -1,51 +1,12 @@
-import { buildDummyBox } from './dummyBox';
+import { cafeWall } from './cafeWall';
+import { checkerShadow } from './checkerShadow';
+import { muellerLyer } from './muellerLyer';
 import type { ExhibitDefinition } from './types';
 
 /**
- * 全展示の登録テーブル。
+ * 全展示の登録テーブル。順路の並びは order で決まる。
  *
- * 現在は Phase 4 のダミー2点。Phase 6a でカフェウォールとネッカーキューブに
- * 差し替えるため、textKey だけ先に本番のものを指している。
+ * Room A: 平面のだまし絵 / Room B: あり得ない立体 /
+ * Room C: 空間と身体 / Room D: Opus 棟
  */
-export const EXHIBITS: readonly ExhibitDefinition[] = [
-  {
-    id: 'dummyA',
-    textKey: 'cafeWall',
-    room: 'impossible',
-    kind: 'object',
-    position: { x: -5, y: 0, z: -8 },
-    rotationY: 0,
-    order: 900,
-    reveal: 'none',
-    viewSpots: [
-      {
-        standAt: { x: -5, y: 0, z: -5 },
-        eye: { x: -5, y: 1.6, z: -5 },
-        lookAt: { x: -5, y: 1.2, z: -8 },
-        fov: 60,
-        radius: 1.1,
-      },
-    ],
-    build: buildDummyBox,
-  },
-  {
-    id: 'dummyB',
-    textKey: 'neckerCube',
-    room: 'impossible',
-    kind: 'object',
-    position: { x: 5, y: 0, z: -8 },
-    rotationY: 0,
-    order: 901,
-    reveal: 'none',
-    viewSpots: [
-      {
-        standAt: { x: 5, y: 0, z: -5 },
-        eye: { x: 5, y: 1.6, z: -5 },
-        lookAt: { x: 5, y: 1.2, z: -8 },
-        fov: 55,
-        radius: 1.1,
-      },
-    ],
-    build: buildDummyBox,
-  },
-];
+export const EXHIBITS: readonly ExhibitDefinition[] = [cafeWall, muellerLyer, checkerShadow];

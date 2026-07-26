@@ -27,6 +27,8 @@ export interface SpotRequest {
   angle: number;
   penumbra: number;
   distance: number;
+  /** 距離減衰。0 にすると照度が距離によらず一定になる（校正済みの展示で使う） */
+  decay?: number;
   /**
    * 錯視の成立条件である照明（チェッカーシャドウ / ホロウマスク）。
    * §4.4 の例外扱い: low プリセットでも必ず点灯し、影も維持する。
@@ -205,6 +207,7 @@ export class Lighting {
       light.angle = request.angle;
       light.penumbra = request.penumbra;
       light.distance = request.distance;
+      light.decay = request.decay ?? 1.4;
       light.intensity = request.intensity * entry.fade;
       light.map = request.map ?? null;
 
