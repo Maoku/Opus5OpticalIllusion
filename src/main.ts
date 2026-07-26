@@ -234,9 +234,11 @@ async function boot(): Promise<void> {
   await exhibits.load(EXHIBITS);
   loading.setProgress(1);
   await loading.ready(i18n.t.meta.enter);
-  await app.device.tryImmersive(document.documentElement);
+  // 入場を全画面化の成否に待たせない。§4.3 の方針どおり「試すだけ」にして、
+  // 結果を待たずに始める（await すると非対応環境で入場ボタンが効かなくなる）
   loading.hide();
   app.start();
+  void app.device.tryImmersive(document.documentElement);
 }
 
 void boot();

@@ -77,22 +77,23 @@ export class Device {
     return off;
   }
 
-  /** 初回タップで呼ぶ。iOS Safari では両方失敗するが、失敗しても続行する。 */
+  /**
+   * 初回タップで呼ぶ。iOS Safari では両方失敗するが、失敗しても続行する。
+   *
+   * 「失敗する」だけでなく「いつまでも決着しない」ことがある。
+   * 実ユーザー操作から呼ばれた requestFullscreen は、埋め込みブラウザや
+   * 権限待ちの環境で Promise が解決も棄却もされないまま止まりうる。
+   * 呼び出し側を巻き添えにしないよう、必ずタイムアウトで打ち切る。
+   */
   async tryImmersive(element: HTMLElement = document.documentElement): Promise<void> {
-    try {
-      if (!document.fullscreenElement && element.requestFullscreen) {
-        await element.requestFullscreen({ navigationUI: 'hide' });
-      }
-    } catch {
-      /* 非対応。無視して続行 */
+    if (!document.fullscreenElement && element.requestFullscreen) {
+      await settleWithin(() => element.requestFullscreen({ navigationUI: 'hide' }));
     }
-    try {
-      const orientation = screen.orientation as
-        | (ScreenOrientation & { lock?: (o: string) => Promise<void> })
-        | undefined;
-      await orientation?.lock?.('landscape');
-    } catch {
-      /* 非対応。無視して続行 */
+    const orientation = screen.orientation as
+      | (ScreenOrientation & { lock?: (o: string) => Promise<void> })
+      | undefined;
+    if (orientation?.lock) {
+      await settleWithin(() => orientation.lock!('landscape'));
     }
   }
 
@@ -108,6 +109,18 @@ export class Device {
   dispose(): void {
     for (const off of this.#listeners) off();
     this.#listeners = [];
+  }
+}
+
+/** 非対応 API の「投げる / 棄却される / 返ってこない」をすべて吸収する */
+async function settleWithin(run: () => Promise<unknown> | undefined, ms = 1200): Promise<void> {
+  try {
+    await Promise.race([
+      Promise.resolve(run()),
+      new Promise((resolve) => window.setTimeout(resolve, ms)),
+    ]);
+  } catch {
+    /* 非対応。無視して続行 */
   }
 }
 
