@@ -96,7 +96,16 @@ function build(ctx: BuildContext): ExhibitInstance {
   });
   const geometry = buildMaskGeometry(true);
   const mask = new THREE.Mesh(geometry, material);
-  mask.castShadow = true;
+  /**
+   * ★ 影を落とさせない（§11e）。
+   *
+   * 凹面のレリーフは薄い単一サーフェスなので、castShadow を立てると
+   * 自分自身にシャドウマップを投げる。鼻の谷の縁が硬い落ち影になり、
+   * **凸の顔なら生じない位置**に影が乗って「上から照らされた凸の顔」という
+   * 読みが崩れていた。ここで欲しい陰影は法線由来のシェーディングだけ。
+   * マスクは他の何にも影を落とす必要がない（台座は自分で影を作る）。
+   */
+  mask.castShadow = false;
   mask.receiveShadow = true;
   pivot.add(mask);
 
