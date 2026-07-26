@@ -5,7 +5,7 @@ import { EventBus } from '../core/EventBus';
 import type { InputState } from '../core/input/types';
 import type { PlayerController, PlayerOverrideHandle } from '../player/PlayerController';
 import { ViewSpot } from '../viewpoint/ViewSpot';
-import type { ViewpointController } from '../viewpoint/ViewpointController';
+import { poseLookingAt, type ViewpointController } from '../viewpoint/ViewpointController';
 import type { Lighting } from '../world/Lighting';
 import { saturate } from '../utils/math';
 import type { ExhibitDefinition, ExhibitId, ExhibitInstance, HintContent } from './types';
@@ -147,7 +147,48 @@ export class ExhibitManager implements Updatable {
     const record = this.records.get(id);
     if (!record || record.revealed === revealed) return;
     record.revealed = revealed;
+    this.#applyCameraReveal(record, revealed);
     this.events.emit('revealChanged', { record, revealed });
+  }
+
+  /**
+   * カメラを動かす種類の reveal（orbit / topDown）はここで駆動する。
+   * 展示側からカメラを触らせると、ロック解除との整合が取れなくなるため。
+   */
+  #applyCameraReveal(record: ExhibitRecord, revealed: boolean): void {
+    const kind = record.definition.reveal;
+    if (kind !== 'orbit' && kind !== 'topDown') return;
+    if (!this.viewpoint.isEngaged) return;
+    if (!revealed) {
+      this.viewpoint.setRevealPose(null, 1.4);
+      return;
+    }
+    const spot = record.spots[0];
+    if (!spot) return;
+    const centre = new THREE.Vector3(
+      record.definition.position.x,
+      record.definition.position.y,
+      record.definition.position.z,
+    );
+
+    if (kind === 'orbit') {
+      // 正解視点から 72° 回り込む。破綻（桁の切れ目）が見える角度。
+      const offset = spot.eye.clone().sub(centre);
+      const radius = offset.length();
+      const angle = Math.atan2(offset.x, offset.z) + THREE.MathUtils.degToRad(72);
+      const eye = new THREE.Vector3(
+        centre.x + Math.sin(angle) * radius,
+        spot.eye.y + radius * 0.14,
+        centre.z + Math.cos(angle) * radius,
+      );
+      this.viewpoint.setRevealPose(poseLookingAt(eye, centre, spot.definition.fov), 2.4);
+      return;
+    }
+
+    // topDown: 真上から本当の形を見せる
+    const height = Math.max(4.5, centre.y + 5.5);
+    const eye = new THREE.Vector3(centre.x, height, centre.z + 0.6);
+    this.viewpoint.setRevealPose(poseLookingAt(eye, centre, 58), 2.2);
   }
 
   update(dt: number, elapsed: number): void {
