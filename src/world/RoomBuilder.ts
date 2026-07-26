@@ -110,6 +110,14 @@ export class RoomBuilder {
       for (const geo of wallGeos) geo.dispose();
     }
 
+    const slits = this.#buildCeilingSlits(area);
+    if (slits) g.add(slits);
+    const rail = this.#buildPictureRail(area, pieces);
+    if (rail) g.add(rail);
+    if (area.id === 'entrance') {
+      for (const mesh of this.#buildEntranceFixtures(area)) g.add(mesh);
+    }
+
     if (baseGeos.length > 0) {
       const merged = mergeGeometries(baseGeos, false);
       if (merged) {
@@ -122,6 +130,155 @@ export class RoomBuilder {
     }
 
     return g;
+  }
+
+  // --------------------------------------------------------------- 内装
+  //
+  // §13 の制約:
+  //   1. ライトを増やさない。Lighting はプール本数を起動時に固定しており、
+  //      実行中に本数を変えると three がシェーダを再コンパイルしてカクつく。
+  //      内装の「光」は全て発光マテリアルで表現する。
+  //   2. 明度系錯視の背景を変えない。gallery のパレットは据え置き。
+  //   3. ドローコールは部屋あたり +2 まで。だからエリアごとに 1 メッシュへ結合する。
+
+  /** 天井のスリット照明の下端 */
+  private static readonly SLIT_DROP = 0.04;
+  /** ピクチャーレール（見切りの帯）の高さ */
+  private static readonly RAIL_HEIGHT = 2.6;
+  private static readonly RAIL_THICKNESS = 0.045;
+
+  /**
+   * 天井の細い発光帯（§13-1）。
+   *
+   * 近代美術館の記号としていちばん安く効く。実際の照明は増やさず、
+   * 見た目だけを担う。エリアごとに 1 メッシュへ結合（制約 3）。
+   * 天井の無い／狭いエリア（通路）には入れない。
+   */
+  #buildCeilingSlits(area: AreaDefinition): THREE.Mesh | null {
+    if (area.ceiling === false) return null;
+    const [x0, z0] = area.min;
+    const [x1, z1] = area.max;
+    const w = x1 - x0;
+    const d = z1 - z0;
+    /*
+     * 天井の低いエリアには入れない。
+     *   通路（3.2m）: 光る帯が真上に来て眩しいだけになる
+     *   Opus 棟のアルコーブ（3.6m）: **暗さが D6 の成立条件**。
+     *     発光する帯を天井に並べたら同化が壊れる（§13 制約 2 の趣旨）
+     */
+    if (Math.min(w, d) < 5 || area.height < 4) return null;
+
+    // 長辺に沿って走らせ、短辺の方向に等間隔で並べる
+    const alongX = w >= d;
+    const span = alongX ? w : d;
+    const across = alongX ? d : w;
+    const count = Math.min(4, Math.max(2, Math.round(across / 6)));
+    const length = Math.max(1, span - 2.4);
+    const y = area.height - RoomBuilder.SLIT_DROP;
+
+    const geometries: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < count; i++) {
+      const t = (i + 1) / (count + 1);
+      const geo = alongX
+        ? new THREE.BoxGeometry(length, 0.05, 0.18)
+        : new THREE.BoxGeometry(0.18, 0.05, length);
+      geo.translate(
+        alongX ? (x0 + x1) / 2 : x0 + across * t,
+        y,
+        alongX ? z0 + across * t : (z0 + z1) / 2,
+      );
+      geometries.push(geo);
+    }
+    const merged = mergeGeometries(geometries, false);
+    for (const geo of geometries) geo.dispose();
+    if (!merged) return null;
+
+    const mesh = new THREE.Mesh(merged, this.#slitMaterial());
+    mesh.name = `${area.id}-slits`;
+    return mesh;
+  }
+
+  /**
+   * ピクチャーレール（§13-2）。
+   *
+   * 壁の上端付近に見切りの帯を 1 本走らせる。壁面の巨大な無地を分割して
+   * スケール感を与えるのが目的。幅木と同じく buildWallPieces の結果から作る。
+   * 天井が低いエリアでは帯が目線に近すぎるので入れない。
+   */
+  #buildPictureRail(area: AreaDefinition, pieces: readonly WallPiece[]): THREE.Mesh | null {
+    if (area.height < RoomBuilder.RAIL_HEIGHT + 0.8) return null;
+    const geometries: THREE.BufferGeometry[] = [];
+    for (const piece of pieces) {
+      if (!piece.blocking) continue;
+      geometries.push(
+        pieceGeometry(
+          {
+            ...piece,
+            y0: RoomBuilder.RAIL_HEIGHT,
+            y1: RoomBuilder.RAIL_HEIGHT + RoomBuilder.RAIL_THICKNESS,
+          },
+          WALL_THICKNESS + BASEBOARD_OVERHANG * 2,
+        ),
+      );
+    }
+    const merged = mergeGeometries(geometries, false);
+    for (const geo of geometries) geo.dispose();
+    if (!merged) return null;
+
+    const mesh = new THREE.Mesh(merged, this.#railMaterial(area.palette));
+    mesh.receiveShadow = true;
+    mesh.name = `${area.id}-rail`;
+    return mesh;
+  }
+
+  /**
+   * エントランスの造作（§13-4）。
+   *
+   * 天井高 6.0m の吹き抜けが空っぽで、規模のわりに何もない部屋だった。
+   * 受付カウンター相当の低いボリュームを 1 つと、吹き抜けを活かした
+   * 縦長のサイン面を置く。**文字は載せない** —— §12a で 3D 空間から
+   * 説明文を撤去した方針を崩さないため、意匠としての面だけにする。
+   */
+  #buildEntranceFixtures(area: AreaDefinition): THREE.Mesh[] {
+    const out: THREE.Mesh[] = [];
+    const [, z0] = area.min;
+    const [x1, z1] = area.max;
+
+    // --- 受付カウンター（天板と本体を 1 メッシュへ結合） --------------------
+    const counterX = -4.6;
+    const counterZ = z1 - 4.2;
+    const body = new THREE.BoxGeometry(3.4, 0.94, 0.78);
+    body.translate(counterX, 0.47, counterZ);
+    const top = new THREE.BoxGeometry(3.6, 0.06, 0.92);
+    top.translate(counterX, 0.97, counterZ);
+    const merged = mergeGeometries([body, top], false);
+    body.dispose();
+    top.dispose();
+    if (merged) {
+      const counter = new THREE.Mesh(merged, this.#counterMaterial());
+      counter.castShadow = true;
+      counter.receiveShadow = true;
+      counter.name = 'entrance-counter';
+      out.push(counter);
+      // 通り抜けられると受付に見えない
+      this.collision.addSegment(
+        counterX - 1.8,
+        counterZ,
+        counterX + 1.8,
+        counterZ,
+        0.92,
+        'entrance-counter',
+      );
+    }
+
+    // --- 吹き抜けの縦長サイン面（意匠のみ・文字なし） ----------------------
+    const banner = new THREE.BoxGeometry(0.9, 4.2, 0.06);
+    banner.translate(x1 - 3.0, 3.1, z0 + 0.2);
+    const sign = new THREE.Mesh(banner, this.#slitMaterial());
+    sign.name = 'entrance-banner';
+    out.push(sign);
+
+    return out;
   }
 
   #addCollider(piece: WallPiece, thickness: number): void {
@@ -159,6 +316,31 @@ export class RoomBuilder {
           ctx.fill();
         }
         ctx.globalAlpha = 1;
+
+        /*
+         * 床の目地（§13-3）。
+         *
+         * UV は 4m で 1 周するよう scaleUv() で伸ばしてあるので、
+         * テクスチャを 4 分割すると **1m 間隔**の目地になる。改良計画は 1.2m
+         * だが、それだと 4m の繰り返しで割り切れず継ぎ目に段差が出る。
+         * 展示の真下でも主張しない濃度に抑えること。
+         */
+        ctx.globalAlpha = 0.14;
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = Math.max(1, w / 512);
+        for (let i = 0; i < 4; i++) {
+          const p = Math.round((i / 4) * w) + 0.5;
+          ctx.beginPath();
+          ctx.moveTo(p, 0);
+          ctx.lineTo(p, h);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, p);
+          ctx.lineTo(w, p);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+
         drawNoise(ctx, w, h, 0.02, 7);
       });
       this.#textures.push(tex);
@@ -188,6 +370,42 @@ export class RoomBuilder {
           metalness: 0,
         }),
     );
+  }
+
+  /**
+   * スリット照明の面材（§13-1）。
+   *
+   * MeshBasicMaterial は陰影を受けないので、部屋の明るさに関わらず
+   * 一定の輝度で「光っている帯」に見える。実光源は増やさない（制約 1）。
+   * toneMapped を切って、暗い Opus 棟でも同じ見え方にする。
+   */
+  #slitMaterial(): THREE.Material {
+    return this.#material('slit', () => {
+      const material = new THREE.MeshBasicMaterial({ color: 0xf4f1e8 });
+      material.toneMapped = false;
+      return material;
+    });
+  }
+
+  #counterMaterial(): THREE.Material {
+    return this.#material(
+      'counter',
+      () =>
+        // 暗すぎると単なる黒い塊に見える。造作として読める明度にする
+        new THREE.MeshStandardMaterial({ color: 0x3d414a, roughness: 0.5, metalness: 0.14 }),
+    );
+  }
+
+  #railMaterial(palette: PaletteId): THREE.Material {
+    return this.#material(`rail:${palette}`, () => {
+      // 幅木の色をそのまま使うと、明るい壁の上で真っ黒な線になって主張しすぎる。
+      // 壁の色を幅木側へ寄せた「影の線」くらいの濃さに留める
+      const color = new THREE.Color(PALETTES[palette].wall).lerp(
+        new THREE.Color(PALETTES[palette].baseboard),
+        0.42,
+      );
+      return new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.08 });
+    });
   }
 
   #baseboardMaterial(palette: PaletteId): THREE.Material {

@@ -52,10 +52,15 @@ export interface Palette {
 }
 
 export const PALETTES: Record<PaletteId, Palette> = {
-  hall: { floor: 0x2a2d34, wall: 0xd9d6cf, ceiling: 0xf0eee9, baseboard: 0x3a3d44 },
-  // ギャラリーの壁は「白すぎない」中間明度。明度系の錯視の背景として重要。
+  // §13-5: わずかに冷たいオフホワイトへ。近代美術館の白は黄味を持たない
+  hall: { floor: 0x2a2d34, wall: 0xd8d8d6, ceiling: 0xeff0f0, baseboard: 0x3a3d44 },
+  /*
+   * ギャラリーの壁は「白すぎない」中間明度。明度系の錯視の背景として重要。
+   * §13 の制約 2: **ここは据え置く**。変更するならチェッカーシャドウの
+   * CALIBRATION を実測し直すこと。
+   */
   gallery: { floor: 0x3b3a37, wall: 0xc9c6bf, ceiling: 0xe6e4df, baseboard: 0x4a4844 },
-  corridor: { floor: 0x33353b, wall: 0xb4b2ac, ceiling: 0xd8d6d1, baseboard: 0x42444a },
+  corridor: { floor: 0x33353b, wall: 0xb3b5b6, ceiling: 0xd7d9da, baseboard: 0x42444a },
   // Opus 棟のアルコーブ。暗さが成立条件の展示（D6）だけをここに集める。
   opus: { floor: 0x14151a, wall: 0x24252c, ceiling: 0x101116, baseboard: 0x1a1b21 },
   /*
