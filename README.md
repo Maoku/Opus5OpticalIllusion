@@ -1,5 +1,7 @@
 # Optical Illusion Museum（錯視のミュージアム）
 
+**日本語** | [English](./README.en.md)
+
 ![錯視美術館](./scene.jpg)
 
 Claude Opus 5 high 製のブラウザで歩き回れる 3D 錯視ミュージアム。
@@ -71,7 +73,7 @@ npm run dev
 | `npm run dev` | 開発サーバー（Vite） |
 | `npm run build` | 型チェック（`tsc --noEmit`）+ 本番ビルド |
 | `npm run preview` | ビルド結果をローカル配信 |
-| `npm test` | ユニットテスト（Vitest, 195 件） |
+| `npm test` | ユニットテスト（Vitest, 198 件） |
 | `npm run test:watch` | テストの監視実行 |
 | `npm run lint` | ESLint |
 | `npm run format` | Prettier |
