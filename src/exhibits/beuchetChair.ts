@@ -169,6 +169,16 @@ export const beuchetChair: ExhibitDefinition = {
     radius: 1.0,
   }),
   position: POSITION,
+  /**
+   * 奥の塊（z 局所 −3.0 に 1.9 倍で立つ）から、手前に浮かぶ座面
+   * （z 局所 +0.9）まで。右手 1.15m には等身大の人形が立つので非対称（§10b）。
+   */
+  footprint: {
+    minX: POSITION.x - 0.7,
+    maxX: POSITION.x + 1.5,
+    minZ: POSITION.z - 3.6,
+    maxZ: POSITION.z + 1.1,
+  },
   revealFocus: { x: 0, y: 0.6, z: -3.2 },
   build,
 };

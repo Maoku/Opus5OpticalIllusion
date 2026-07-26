@@ -59,7 +59,7 @@ const drawReveal: PanelDraw = (ctx, w, h) => {
   }
 };
 
-const PLACEMENT = wallPanel({ x: -30, z: 2.72, rotationY: Math.PI, viewDistance: 3.2, fov: 50 });
+const PLACEMENT = wallPanel({ x: -30, z: 2.72, rotationY: Math.PI, viewDistance: 3.2, width: 1.9, fov: 50 });
 
 export const cafeWall: ExhibitDefinition = {
   id: 'cafeWall',

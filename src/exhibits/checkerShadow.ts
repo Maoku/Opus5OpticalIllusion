@@ -232,6 +232,8 @@ export const checkerShadow: ExhibitDefinition = {
     dirY: 0,
     viewDistance: 3.1,
     targetHeight: BOARD_TOP + 0.05,
+    // 台は盤面 (BOARD) より一回り大きい箱
+    halfX: (BOARD + 0.16) / 2,
     fov: 42,
     radius: 1.1,
   }),

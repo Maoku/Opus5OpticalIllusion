@@ -150,6 +150,8 @@ export const anamorphosis: ExhibitDefinition = {
   reveal: 'topDown',
   position: POSITION,
   rotationY: 0,
+  // 床に投影された絵の広がり（立つ場所そのものは含まない、§10b）
+  footprint: { minX: -0.9, maxX: 0.9, minZ: -5.9, maxZ: -3.6 },
   revealFocus: { x: 0, y: 0, z: -2.2 },
   viewSpots: [
     {

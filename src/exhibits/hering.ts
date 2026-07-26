@@ -50,7 +50,7 @@ export const hering: ExhibitDefinition = {
   kind: 'object',
   order: 5,
   reveal: 'fadeContext',
-  ...wallPanel({ x: -30, z: -12.72, rotationY: 0, viewDistance: 3.0, fov: 50 }),
+  ...wallPanel({ x: -30, z: -12.72, rotationY: 0, viewDistance: 3.0, width: 1.55, fov: 50 }),
   build() {
     const panel = createPanel({
       width: 1.55,

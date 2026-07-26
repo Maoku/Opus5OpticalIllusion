@@ -93,7 +93,7 @@ const drawReveal: PanelDraw = (ctx, w, h) => {
   ctx.setLineDash([]);
 };
 
-const PLACEMENT = wallPanel({ x: -24, z: 2.72, rotationY: Math.PI, viewDistance: 3.0, fov: 50 });
+const PLACEMENT = wallPanel({ x: -24, z: 2.72, rotationY: Math.PI, viewDistance: 3.0, width: 1.9, fov: 50 });
 
 export const muellerLyer: ExhibitDefinition = {
   id: 'muellerLyer',

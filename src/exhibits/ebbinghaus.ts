@@ -72,7 +72,7 @@ export const ebbinghaus: ExhibitDefinition = {
   kind: 'object',
   order: 4,
   reveal: 'fadeContext',
-  ...wallPanel({ x: -18, z: 2.72, rotationY: Math.PI, viewDistance: 3.0, fov: 50 }),
+  ...wallPanel({ x: -18, z: 2.72, rotationY: Math.PI, viewDistance: 3.0, width: 1.9, fov: 50 }),
   build() {
     const panel = createPanel({ width: 1.9, height: 1.15, drawBase: draw(1), drawReveal });
     return {

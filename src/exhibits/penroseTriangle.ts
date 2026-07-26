@@ -29,7 +29,13 @@ const BAR_LENGTH = 1.15;
 const BAR_SIZE = 0.3;
 const CENTER_HEIGHT = 1.5;
 const VIEW_DISTANCE = 6.2;
-const POSITION = { x: -5, y: CENTER_HEIGHT, z: -9 };
+/**
+ * Room B の左奥（§10b）。
+ *
+ * 以前は (−5, −9) で、立ち位置 (−5, −2.8) がペンローズの階段の台座の
+ * 内部だった。左右に振り分け、視線が互いを横切らない配置に組み直している。
+ */
+const POSITION = { x: -6.5, y: CENTER_HEIGHT, z: -10.0 };
 
 function build(ctx: BuildContext): ExhibitInstance {
   const root = new THREE.Group();
@@ -162,6 +168,8 @@ export const penroseTriangle: ExhibitDefinition = {
     dirY: 0,
     viewDistance: VIEW_DISTANCE,
     targetHeight: CENTER_HEIGHT,
+    // 角柱の鎖（BAR_LENGTH）＋台座
+    halfX: BAR_LENGTH / 2 + BAR_SIZE,
     fov: 26,
     radius: 1.1,
     eyeHeight: CENTER_HEIGHT,

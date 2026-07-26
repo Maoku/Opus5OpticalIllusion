@@ -165,6 +165,9 @@ export const hollowMask: ExhibitDefinition = {
     dirY: 0,
     viewDistance: VIEW_DISTANCE,
     targetHeight: CENTER_HEIGHT,
+    // 細い柱の上のレリーフ。床の占有は柱の太さぶんしかない
+    halfX: WIDTH / 2,
+    halfZ: 0.3,
     fov: 34,
     radius: 1.0,
     eyeHeight: CENTER_HEIGHT,

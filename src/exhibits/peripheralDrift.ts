@@ -60,7 +60,7 @@ export const peripheralDrift: ExhibitDefinition = {
   kind: 'object',
   order: 6,
   reveal: 'grayscale',
-  ...wallPanel({ x: -18, z: -12.72, rotationY: 0, viewDistance: 3.2, fov: 52 }),
+  ...wallPanel({ x: -18, z: -12.72, rotationY: 0, viewDistance: 3.2, width: 1.5, fov: 52 }),
   build() {
     const panel = createPanel({
       width: 1.5,

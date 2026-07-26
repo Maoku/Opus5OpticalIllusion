@@ -18,6 +18,8 @@ const SIZE = 0.92;
 const EDGE = 0.026;
 const CENTER_HEIGHT = 1.5;
 const VIEW_DISTANCE = 6.0;
+/** Room B の右奥。ペンローズの三角形と左右対称に置く（§10b） */
+const POSITION = { x: 6.5, y: CENTER_HEIGHT, z: -10.0 };
 
 /** 立方体の頂点（±1 の組み合わせ） */
 function corners(): THREE.Vector3[] {
@@ -166,17 +168,18 @@ export const neckerCube: ExhibitDefinition = {
   order: 9,
   reveal: 'fadeContext',
   ...pedestal({
-    x: 5,
-    z: -9,
+    x: POSITION.x,
+    z: POSITION.z,
     dirY: 0,
     viewDistance: VIEW_DISTANCE,
     targetHeight: CENTER_HEIGHT,
+    halfX: SIZE / 2 + 0.16,
     fov: 19,
     radius: 1.1,
     eyeHeight: CENTER_HEIGHT,
     projection: 'orthographic',
     orthoHeight: 2.6,
   }),
-  position: { x: 5, y: CENTER_HEIGHT, z: -9 },
+  position: POSITION,
   build,
 };

@@ -35,6 +35,18 @@ const FAR_SCALE = 1.6;
 const NEAR_SCALE = 0.66;
 
 const POSITION = { x: 18, y: 0, z: -1.5 };
+/**
+ * 歪んだ部屋の床の広がり（§10b）。
+ *
+ * 左奥は FAR_SCALE 倍、右奥は NEAR_SCALE 倍の距離へ押し出されるので、
+ * 左右非対称になる。左奥 (−1.76, −8.96) / 右奥 (0.73, −3.70) / 手前 ±1.1。
+ */
+const FOOTPRINT = {
+  minX: POSITION.x - 1.85,
+  maxX: POSITION.x + 1.2,
+  minZ: POSITION.z - 9.1,
+  maxZ: POSITION.z - 1.5,
+};
 
 type V3 = THREE.Vector3;
 
@@ -272,6 +284,7 @@ export const amesRoom: ExhibitDefinition = {
   reveal: 'topDown',
   position: POSITION,
   rotationY: 0,
+  footprint: FOOTPRINT,
   // 覗き穴が原点なので、真上からの演出はもっと奥（部屋の中心）を見る
   revealFocus: { x: 0, y: 1.0, z: -4.4 },
   viewSpots: [

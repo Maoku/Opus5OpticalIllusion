@@ -31,6 +31,20 @@ export interface Vec3Like {
   z: number;
 }
 
+/**
+ * 展示が床の上で占める矩形（世界座標・XZ、§10b）。
+ *
+ * 「ペンローズの三角形の立ち位置が、階段の台座の内部だった」のような事故は、
+ * 配置を人手で決めているかぎり必ず再発する。全展示ぶんを走査するテストが
+ * 参照できるよう、占有範囲を定義側に持たせる。
+ */
+export interface Footprint {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
 export interface ViewSpotDefinition {
   /** プレイヤーが立つ床の位置 */
   standAt: Vec3Like;
@@ -91,6 +105,11 @@ export interface ExhibitDefinition {
   viewSpots?: ViewSpotDefinition[];
   /** kind === 'zone' のとき、進入判定に使う AABB */
   zone?: { min: Vec3Like; max: Vec3Like };
+  /**
+   * 床の占有範囲（§10b）。他展示の ViewSpot がここに入っていないことを
+   * tests/placement.test.ts が全展示ぶん検査する。
+   */
+  footprint?: Footprint;
   reveal: RevealKind;
   /**
    * カメラ演出（orbit / topDown）が見るべき中心。展示のローカル座標。

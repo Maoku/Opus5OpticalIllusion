@@ -175,6 +175,9 @@ export const audibleCollision: ExhibitDefinition = {
     dirY: 0,
     viewDistance: VIEW_DISTANCE,
     targetHeight: TABLE_HEIGHT + 0.1,
+    // 1.7 × 0.9m の机
+    halfX: 0.85,
+    halfZ: 0.45,
     fov: 44,
     radius: 1.1,
   }),

@@ -24,7 +24,16 @@ const RISE = 0.028;
 const TREAD_WIDTH = 0.2;
 const BASE_HEIGHT = 0.62;
 const VIEW_DISTANCE = 3.0;
-const POSITION = { x: -5, y: BASE_HEIGHT, z: -2.4 };
+/**
+ * Room B の左手前（§10b）。
+ *
+ * 以前は (−5, −2.4) で、台座がペンローズの三角形の立ち位置を飲み込んでいた。
+ * 三角形・ネッカーキューブを左右の奥へ振り分け、階段は短い視距離で済むので
+ * 手前に置く。
+ */
+const POSITION = { x: -7.0, y: BASE_HEIGHT, z: -1.4 };
+/** 台座の一辺（PLAN + 0.7）。占有範囲の算出と build() で共有する */
+const PLINTH_SIZE = PLAN + 0.7;
 
 type V3 = THREE.Vector3;
 
@@ -101,7 +110,7 @@ function build(ctx: BuildContext): ExhibitInstance {
 
   const plinthHeight = BASE_HEIGHT;
   const plinth = new THREE.Mesh(
-    new THREE.BoxGeometry(PLAN + 0.7, plinthHeight, PLAN + 0.7),
+    new THREE.BoxGeometry(PLINTH_SIZE, plinthHeight, PLINTH_SIZE),
     new THREE.MeshStandardMaterial({ color: 0x22252c, roughness: 0.8 }),
   );
   plinth.position.y = -plinthHeight / 2;
@@ -151,6 +160,7 @@ export const penroseStairs: ExhibitDefinition = {
     dirY: 0,
     viewDistance: VIEW_DISTANCE,
     targetHeight: BASE_HEIGHT + 0.2,
+    halfX: PLINTH_SIZE / 2,
     fov: 34,
     radius: 1.1,
   }),

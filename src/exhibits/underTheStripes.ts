@@ -154,6 +154,9 @@ export const underTheStripes: ExhibitDefinition = {
     dirY: 0,
     viewDistance: VIEW_DISTANCE,
     targetHeight: TOP_HEIGHT + RADIUS,
+    // 横長の台（球が並ぶ）。奥行きは 0.6m しかない
+    halfX: (SPACING * COUNT + 0.3) / 2,
+    halfZ: 0.3,
     fov: 46,
     radius: 1.1,
   }),

@@ -165,5 +165,12 @@ export const shrinkingRoom: ExhibitDefinition = {
     min: { x: POSITION.x - HALF_WIDTH, y: -1, z: Z_FAR },
     max: { x: POSITION.x + HALF_WIDTH, y: 3, z: Z_NEAR },
   },
+  // 中を歩く展示なので、占有範囲＝ゾーンそのもの（§10b）
+  footprint: {
+    minX: POSITION.x - HALF_WIDTH,
+    maxX: POSITION.x + HALF_WIDTH,
+    minZ: Z_FAR,
+    maxZ: Z_NEAR,
+  },
   build,
 };

@@ -161,6 +161,13 @@ export const ponzoCorridor: ExhibitDefinition = {
   reveal: 'measure',
   position: POSITION,
   rotationY: 0,
+  // 収束する廊下（zStart −1.2 〜 zEnd −9.0、手前の幅 2.6m）
+  footprint: {
+    minX: POSITION.x - 1.3,
+    maxX: POSITION.x + 1.3,
+    minZ: POSITION.z - 9.0,
+    maxZ: POSITION.z - 1.2,
+  },
   revealFocus: { x: 0, y: 0.4, z: -3.0 },
   viewSpots: [
     {
