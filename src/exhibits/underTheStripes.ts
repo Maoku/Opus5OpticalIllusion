@@ -119,11 +119,7 @@ function build(ctx: BuildContext): ExhibitInstance {
       const gather = Math.max(0, (progress - 0.6) / 0.4);
       for (let i = 0; i < spheres.length; i++) {
         const home = homes[i]!;
-        const target = new THREE.Vector3(
-          (i - (COUNT - 1) / 2) * RADIUS * 2.02,
-          home.y,
-          home.z,
-        );
+        const target = new THREE.Vector3((i - (COUNT - 1) / 2) * RADIUS * 2.02, home.y, home.z);
         spheres[i]!.position.lerpVectors(home, target, gather);
       }
     },

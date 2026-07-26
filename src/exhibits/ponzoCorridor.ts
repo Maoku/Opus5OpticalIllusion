@@ -53,16 +53,42 @@ function build(ctx: BuildContext): ExhibitInstance {
 
   const floorGeometry = new THREE.BufferGeometry();
   const fp = [
-    -width0 / 2, 0.01, zStart,
-    width0 / 2, 0.01, zStart,
-    width1 / 2, 0.01, zEnd,
-    -width1 / 2, 0.01, zEnd,
+    -width0 / 2,
+    0.01,
+    zStart,
+    width0 / 2,
+    0.01,
+    zStart,
+    width1 / 2,
+    0.01,
+    zEnd,
+    -width1 / 2,
+    0.01,
+    zEnd,
   ];
   floorGeometry.setAttribute(
     'position',
     new THREE.Float32BufferAttribute(
-      [fp[0]!, fp[1]!, fp[2]!, fp[3]!, fp[4]!, fp[5]!, fp[6]!, fp[7]!, fp[8]!,
-       fp[0]!, fp[1]!, fp[2]!, fp[6]!, fp[7]!, fp[8]!, fp[9]!, fp[10]!, fp[11]!],
+      [
+        fp[0]!,
+        fp[1]!,
+        fp[2]!,
+        fp[3]!,
+        fp[4]!,
+        fp[5]!,
+        fp[6]!,
+        fp[7]!,
+        fp[8]!,
+        fp[0]!,
+        fp[1]!,
+        fp[2]!,
+        fp[6]!,
+        fp[7]!,
+        fp[8]!,
+        fp[9]!,
+        fp[10]!,
+        fp[11]!,
+      ],
       3,
     ),
   );
@@ -85,7 +111,10 @@ function build(ctx: BuildContext): ExhibitInstance {
     const pts = [a, b, c, a, c, d];
     geometry.setAttribute(
       'position',
-      new THREE.Float32BufferAttribute(pts.flatMap((p) => [p.x, p.y, p.z]), 3),
+      new THREE.Float32BufferAttribute(
+        pts.flatMap((p) => [p.x, p.y, p.z]),
+        3,
+      ),
     );
     geometry.computeVertexNormals();
     const mesh = new THREE.Mesh(geometry, corridorMaterial);

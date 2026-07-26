@@ -91,7 +91,9 @@ describe('buildDoorPieces', () => {
   });
 
   it('orients the slab across the thin axis of the opening', () => {
-    const doors = buildDoorPieces([{ min: [-3, -13.5], max: [3, -12.5], height: 3.2, locked: true }]);
+    const doors = buildDoorPieces([
+      { min: [-3, -13.5], max: [3, -12.5], height: 3.2, locked: true },
+    ]);
     expect(doors[0]!.axis).toBe('z');
     expect(doors[0]!.at).toBeCloseTo(-13);
     expect(doors[0]!.from).toBeCloseTo(-3);

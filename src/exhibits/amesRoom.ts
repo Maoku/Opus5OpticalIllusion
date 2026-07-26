@@ -138,8 +138,7 @@ function build(ctx: BuildContext): ExhibitInstance {
   const eye = new THREE.Vector3(0, EYE_HEIGHT, 0);
 
   const ideal = (x: number, y: number, z: number): V3 => new THREE.Vector3(x, y, z);
-  const push = (p: V3, scale: number): V3 =>
-    placeOnEyeRay(eye, p, eye.distanceTo(p) * scale);
+  const push = (p: V3, scale: number): V3 => placeOnEyeRay(eye, p, eye.distanceTo(p) * scale);
 
   // 手前の四隅はそのまま（覗き口の枠）
   const fbl = ideal(-IDEAL.halfWidth, IDEAL.floorY, IDEAL.frontZ);
@@ -219,10 +218,7 @@ function build(ctx: BuildContext): ExhibitInstance {
   // 同じ寸法の人形を 2 体。左奥は約 2 倍の距離にあるため半分の大きさに見える。
   // 位置は床の四辺形上の双線形補間で取る。奥行き方向にずらすと壁を突き抜けてしまう。
   const onFloor = (u: number, v: number): V3 =>
-    fbl
-      .clone()
-      .lerp(fbr, u)
-      .lerp(bbl.clone().lerp(bbr, u), v);
+    fbl.clone().lerp(fbr, u).lerp(bbl.clone().lerp(bbr, u), v);
   const dollHeight = 0.62;
   const left = doll(dollHeight, 0xd4694a);
   left.position.copy(onFloor(0.14, 0.86));

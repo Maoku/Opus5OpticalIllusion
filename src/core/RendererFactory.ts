@@ -39,7 +39,8 @@ export function applyQuality(renderer: THREE.WebGLRenderer, preset: QualityPrese
   // low プリセットでも影自体は有効なままにする。コストはライトごとの
   // castShadow と影マップ解像度で削る（Lighting 側の責務）。
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = preset.shadowMapSize > 0 ? THREE.PCFSoftShadowMap : THREE.BasicShadowMap;
+  renderer.shadowMap.type =
+    preset.shadowMapSize > 0 ? THREE.PCFSoftShadowMap : THREE.BasicShadowMap;
   renderer.shadowMap.needsUpdate = true;
 }
 

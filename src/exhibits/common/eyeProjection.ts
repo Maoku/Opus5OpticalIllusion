@@ -52,11 +52,7 @@ export function apparentSizeScale(depth: number, refDistance: number): number {
  * 視点 eye から見た点 p の視野角（ラジアン）を、視線方向 forward に対して返す。
  * ViewSpot からの可視判定や、断片同士の角度分離チェックに使う。
  */
-export function angleFromEye(
-  eye: THREE.Vector3,
-  forward: THREE.Vector3,
-  p: THREE.Vector3,
-): number {
+export function angleFromEye(eye: THREE.Vector3, forward: THREE.Vector3, p: THREE.Vector3): number {
   const to = p.clone().sub(eye);
   if (to.lengthSq() < 1e-18) return 0;
   return to.normalize().angleTo(forward.clone().normalize());

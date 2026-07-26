@@ -80,7 +80,10 @@ export class TouchSource implements InputSource {
         this.#lookDx += dx;
         this.#lookDy += dy;
       } else {
-        const v = applyDeadzone(stickVector(tracked.origin, tracked.last, STICK_RADIUS), STICK_DEADZONE);
+        const v = applyDeadzone(
+          stickVector(tracked.origin, tracked.last, STICK_RADIUS),
+          STICK_DEADZONE,
+        );
         this.#pad.setKnob(v.x, v.y, STICK_RADIUS);
       }
       this.#anyInput = true;

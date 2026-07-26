@@ -16,9 +16,7 @@ export interface PointerSample {
 export function isTap(start: PointerSample, end: PointerSample): boolean {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
-  return (
-    Math.hypot(dx, dy) < TAP_MAX_DISTANCE_PX && end.time - start.time < TAP_MAX_DURATION_MS
-  );
+  return Math.hypot(dx, dy) < TAP_MAX_DISTANCE_PX && end.time - start.time < TAP_MAX_DURATION_MS;
 }
 
 /**
@@ -40,7 +38,10 @@ export function stickVector(
 }
 
 /** 微小な指のぶれを切り捨てる */
-export function applyDeadzone(v: { x: number; y: number }, deadzone: number): { x: number; y: number } {
+export function applyDeadzone(
+  v: { x: number; y: number },
+  deadzone: number,
+): { x: number; y: number } {
   const len = Math.hypot(v.x, v.y);
   if (len <= deadzone) return { x: 0, y: 0 };
   // デッドゾーンの外側を 0..1 に張り直す（境界で飛ばないように）

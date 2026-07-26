@@ -164,7 +164,14 @@ export class SettingsMenu {
   }
 
   #buildRows(): void {
-    this.#addSlider('fov', 60, 100, 1, (m) => m.fov, (v) => ({ fov: v }));
+    this.#addSlider(
+      'fov',
+      60,
+      100,
+      1,
+      (m) => m.fov,
+      (v) => ({ fov: v }),
+    );
     this.#addSlider(
       'mouseSensitivity',
       0.0005,
@@ -181,11 +188,31 @@ export class SettingsMenu {
       (m) => m.touchSensitivityDegPerPx,
       (v) => ({ touchSensitivityDegPerPx: v }),
     );
-    this.#addToggle('invertY', (m) => m.invertY, (v) => ({ invertY: v }));
-    this.#addToggle('headBob', (m) => m.headBob, (v) => ({ headBob: v }));
-    this.#addToggle('reducedMotion', (m) => m.reducedMotion, (v) => ({ reducedMotion: v }));
-    this.#addToggle('shrinkingRoom', (m) => m.shrinkingRoom, (v) => ({ shrinkingRoom: v }));
-    this.#addToggle('muted', (m) => m.muted, (v) => ({ muted: v }));
+    this.#addToggle(
+      'invertY',
+      (m) => m.invertY,
+      (v) => ({ invertY: v }),
+    );
+    this.#addToggle(
+      'headBob',
+      (m) => m.headBob,
+      (v) => ({ headBob: v }),
+    );
+    this.#addToggle(
+      'reducedMotion',
+      (m) => m.reducedMotion,
+      (v) => ({ reducedMotion: v }),
+    );
+    this.#addToggle(
+      'shrinkingRoom',
+      (m) => m.shrinkingRoom,
+      (v) => ({ shrinkingRoom: v }),
+    );
+    this.#addToggle(
+      'muted',
+      (m) => m.muted,
+      (v) => ({ muted: v }),
+    );
     this.#addQuality();
   }
 

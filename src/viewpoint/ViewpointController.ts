@@ -214,7 +214,11 @@ export class ViewpointController {
       }
       case 'locked': {
         // ロック中の微小な首振り（±3°）。完全固定は不気味なので許可する
-        this.#microYaw = clamp(this.#microYaw + input.look.yaw, -MICRO_LOOK_LIMIT, MICRO_LOOK_LIMIT);
+        this.#microYaw = clamp(
+          this.#microYaw + input.look.yaw,
+          -MICRO_LOOK_LIMIT,
+          MICRO_LOOK_LIMIT,
+        );
         this.#microPitch = clamp(
           this.#microPitch + input.look.pitch,
           -MICRO_LOOK_LIMIT,

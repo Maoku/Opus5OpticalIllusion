@@ -79,10 +79,7 @@ function build(ctx: BuildContext): ExhibitInstance {
     roughness: 0.5,
     emissive: 0x000000,
   });
-  const button = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.07, 0.07, 0.045, 20),
-    buttonMaterial,
-  );
+  const button = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.045, 20), buttonMaterial);
   const buttonHome = new THREE.Vector3(0.6, TABLE_HEIGHT + 0.05, 0.26);
   button.position.copy(buttonHome);
   button.castShadow = true;

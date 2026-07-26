@@ -67,9 +67,11 @@ describe('exhibit footprints', () => {
       for (let j = i + 1; j < EXHIBITS.length; j++) {
         const a = EXHIBITS[i]!;
         const b = EXHIBITS[j]!;
-        const overlapX = Math.min(a.footprint!.maxX, b.footprint!.maxX) -
+        const overlapX =
+          Math.min(a.footprint!.maxX, b.footprint!.maxX) -
           Math.max(a.footprint!.minX, b.footprint!.minX);
-        const overlapZ = Math.min(a.footprint!.maxZ, b.footprint!.maxZ) -
+        const overlapZ =
+          Math.min(a.footprint!.maxZ, b.footprint!.maxZ) -
           Math.max(a.footprint!.minZ, b.footprint!.minZ);
         expect(overlapX > 0 && overlapZ > 0, `${a.id} × ${b.id}`).toBe(false);
       }
@@ -126,9 +128,10 @@ describe('view spots', () => {
         spot.z - area!.min[1],
         area!.max[1] - spot.z,
       );
-      expect(slack, `${spot.tag} is ${slack.toFixed(2)}m from the area edge`).toBeGreaterThanOrEqual(
-        WALL_MARGIN,
-      );
+      expect(
+        slack,
+        `${spot.tag} is ${slack.toFixed(2)}m from the area edge`,
+      ).toBeGreaterThanOrEqual(WALL_MARGIN);
     }
   });
 

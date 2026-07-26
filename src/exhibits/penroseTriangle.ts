@@ -68,11 +68,7 @@ function build(ctx: BuildContext): ExhibitInstance {
   const halfSizeAt = (p: THREE.Vector3): number =>
     apparentHalfSize(p, eyeLocal, BAR_SIZE, reference);
 
-  const axes = [
-    new THREE.Vector3(1, 0, 0),
-    new THREE.Vector3(0, 1, 0),
-    new THREE.Vector3(0, 0, 1),
-  ];
+  const axes = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)];
 
   // 角柱の端面。継ぎ目 (B, C) は隣の桁と重なるよう半サイズぶん延長する
   const faces: Face[][] = [];

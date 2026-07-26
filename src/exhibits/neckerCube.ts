@@ -24,18 +24,25 @@ const POSITION = { x: 6.5, y: CENTER_HEIGHT, z: -10.0 };
 /** 立方体の頂点（±1 の組み合わせ） */
 function corners(): THREE.Vector3[] {
   const out: THREE.Vector3[] = [];
-  for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
-    out.push(new THREE.Vector3(x, y, z).multiplyScalar(SIZE / 2));
-  }
+  for (const x of [-1, 1])
+    for (const y of [-1, 1])
+      for (const z of [-1, 1]) {
+        out.push(new THREE.Vector3(x, y, z).multiplyScalar(SIZE / 2));
+      }
   return out;
 }
 
 const EDGES: Array<[number, number]> = [
-  [0, 1], [0, 2], [0, 4],
-  [1, 3], [1, 5],
-  [2, 3], [2, 6],
+  [0, 1],
+  [0, 2],
+  [0, 4],
+  [1, 3],
+  [1, 5],
+  [2, 3],
+  [2, 6],
   [3, 7],
-  [4, 5], [4, 6],
+  [4, 5],
+  [4, 6],
   [5, 7],
   [6, 7],
 ];

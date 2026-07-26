@@ -40,7 +40,8 @@ export function createCanvasTexture(
   if (options.repeat) texture.repeat.set(options.repeat[0], options.repeat[1]);
   if (options.filter === 'nearest') {
     texture.magFilter = THREE.NearestFilter;
-    texture.minFilter = options.generateMipmaps === false ? THREE.NearestFilter : THREE.NearestMipmapLinearFilter;
+    texture.minFilter =
+      options.generateMipmaps === false ? THREE.NearestFilter : THREE.NearestMipmapLinearFilter;
   }
   if (options.generateMipmaps === false) texture.generateMipmaps = false;
   texture.anisotropy = options.anisotropy ?? 8;

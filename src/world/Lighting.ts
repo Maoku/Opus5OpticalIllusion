@@ -179,7 +179,9 @@ export class Lighting {
 
     const ranked = [...this.#requests].sort((a, b) => {
       if (!!a.critical !== !!b.critical) return a.critical ? -1 : 1;
-      return a.position.distanceToSquared(playerPosition) - b.position.distanceToSquared(playerPosition);
+      return (
+        a.position.distanceToSquared(playerPosition) - b.position.distanceToSquared(playerPosition)
+      );
     });
 
     const shadowBudget = this.quality.preset.shadowMapSize > 0 ? 2 : 0;

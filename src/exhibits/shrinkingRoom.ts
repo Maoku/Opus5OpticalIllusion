@@ -35,14 +35,7 @@ function build(ctx: BuildContext): ExhibitInstance {
   const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x6e727b, roughness: 0.95 });
   const geometries: THREE.BufferGeometry[] = [];
 
-  const addBox = (
-    w: number,
-    h: number,
-    d: number,
-    x: number,
-    y: number,
-    z: number,
-  ): THREE.Mesh => {
+  const addBox = (w: number, h: number, d: number, x: number, y: number, z: number): THREE.Mesh => {
     const geometry = new THREE.BoxGeometry(w, h, d);
     geometries.push(geometry);
     const mesh = new THREE.Mesh(geometry, wallMaterial);
@@ -74,10 +67,7 @@ function build(ctx: BuildContext): ExhibitInstance {
   // 出口の水平ライン。入室時のあなたの目の高さ
   const lineMaterial = new THREE.MeshBasicMaterial({ color: 0xff5c3d });
   lineMaterial.toneMapped = false;
-  const line = new THREE.Mesh(
-    new THREE.BoxGeometry(HALF_WIDTH * 2, 0.018, 0.018),
-    lineMaterial,
-  );
+  const line = new THREE.Mesh(new THREE.BoxGeometry(HALF_WIDTH * 2, 0.018, 0.018), lineMaterial);
   line.position.set(0, START_HEIGHT, Z_FAR - POSITION.z + 0.7);
   root.add(line);
 

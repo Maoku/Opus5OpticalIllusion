@@ -94,8 +94,7 @@ export class Device {
       await settleWithin(() => element.requestFullscreen({ navigationUI: 'hide' }));
     }
     const orientation = screen.orientation as
-      | (ScreenOrientation & { lock?: (o: string) => Promise<void> })
-      | undefined;
+      (ScreenOrientation & { lock?: (o: string) => Promise<void> }) | undefined;
     if (orientation?.lock) {
       await settleWithin(() => orientation.lock!('landscape'));
     }

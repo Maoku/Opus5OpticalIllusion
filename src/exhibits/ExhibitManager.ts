@@ -11,11 +11,14 @@ import type { Collision } from '../world/Collision';
 import type { AudioBus } from '../core/AudioBus';
 import { saturate } from '../utils/math';
 import { createTextPlate, type TextPlate } from '../world/TextPlate';
+import { areaAt } from '../data/layout';
+import { clampToBounds, pickOrbitViewpoint } from './common/revealCamera';
 import type {
   ExhibitDefinition,
   ExhibitFlags,
   ExhibitId,
   ExhibitInstance,
+  Footprint,
   HintContent,
 } from './types';
 
@@ -257,28 +260,46 @@ export class ExhibitManager implements Updatable {
       );
     }
 
+    const bounds = this.#boundsAt(centre.x, centre.z);
+
     if (kind === 'orbit') {
-      // 正解視点から 72° 回り込む。破綻（桁の切れ目）が見える角度。
+      // 正解視点から回り込む。破綻（桁の切れ目）が見える角度を、
+      // 壁の外・他展示の中に出ないものから選ぶ（§11d-1）
       const offset = spot.eye.clone().sub(centre);
       const radius = offset.length();
       const base = Math.atan2(offset.x, offset.z);
-      const poseAt = (degrees: number): ReturnType<typeof poseLookingAt> => {
-        const angle = base + THREE.MathUtils.degToRad(degrees);
+      const pick = pickOrbitViewpoint({
+        centre: { x: centre.x, z: centre.z },
+        radius,
+        baseAngle: base,
+        bounds,
+        blockers: this.#blockersExcept(record.definition.id),
+      });
+      const poseAt = (fraction: number): ReturnType<typeof poseLookingAt> => {
+        const angle = base + THREE.MathUtils.degToRad(pick.degrees * fraction);
+        // クランプされた終点は円周から外れているので、終端だけ pick を使う
+        const target =
+          fraction === 1
+            ? { x: pick.x, z: pick.z }
+            : {
+                x: centre.x + Math.sin(angle) * pick.radius,
+                z: centre.z + Math.cos(angle) * pick.radius,
+              };
         const eye = new THREE.Vector3(
-          centre.x + Math.sin(angle) * radius,
-          spot.eye.y + radius * 0.14 * (degrees / 72),
-          centre.z + Math.cos(angle) * radius,
+          target.x,
+          spot.eye.y + pick.radius * 0.14 * ((pick.degrees * fraction) / 72),
+          target.z,
         );
         return poseLookingAt(eye, centre, spot.definition.fov);
       };
       if (this.flags.reducedMotion) {
         // §8c: 段階送り。長いスイープの代わりに 2 段で送る
         this.viewpoint.setRevealSequence([
-          { pose: poseAt(36), duration: 0.25, hold: 0.8 },
-          { pose: poseAt(72), duration: 0.25, hold: 0 },
+          { pose: poseAt(0.5), duration: 0.25, hold: 0.8 },
+          { pose: poseAt(1), duration: 0.25, hold: 0 },
         ]);
       } else {
-        this.viewpoint.setRevealPose(poseAt(72), 2.4);
+        this.viewpoint.setRevealPose(poseAt(1), 2.4);
       }
       return;
     }
@@ -286,8 +307,26 @@ export class ExhibitManager implements Updatable {
     // topDown: 真上から本当の形を見せる。
     // 部屋の天井（下向きの単面）はカメラが上にあると裏面カリングで消えるため、
     // 天井より高い位置へ抜けても展示の中身が見える。
-    const eye = new THREE.Vector3(centre.x, centre.y + 7.4, centre.z + 2.4);
+    const over = clampToBounds(bounds, centre.x, centre.z + 2.4);
+    const eye = new THREE.Vector3(over.x, centre.y + 7.4, over.z);
     this.viewpoint.setRevealPose(poseLookingAt(eye, centre, 56), 2.4);
+  }
+
+  /** 種明かしの視点を収めたいエリアの矩形 */
+  #boundsAt(x: number, z: number): Footprint | null {
+    const area = areaAt(x, z);
+    if (!area) return null;
+    return { minX: area.min[0], maxX: area.max[0], minZ: area.min[1], maxZ: area.max[1] };
+  }
+
+  /** 自分以外の展示の占有範囲。回り込みの着地点がここに入らないようにする */
+  #blockersExcept(id: ExhibitId): Footprint[] {
+    const out: Footprint[] = [];
+    for (const record of this.records.values()) {
+      if (record.definition.id === id) continue;
+      if (record.definition.footprint) out.push(record.definition.footprint);
+    }
+    return out;
   }
 
   update(dt: number, elapsed: number): void {

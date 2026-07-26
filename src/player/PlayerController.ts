@@ -192,8 +192,7 @@ export class PlayerController {
     const { x, y } = input.move;
     const magnitude = Math.hypot(x, y);
     const dashing = magnitude > 0.9;
-    const speed =
-      (dashing ? this.tuning.dashSpeed : this.tuning.walkSpeed) * this.moveSpeedScale;
+    const speed = (dashing ? this.tuning.dashSpeed : this.tuning.walkSpeed) * this.moveSpeedScale;
 
     // 入力をワールド座標へ（yaw のみ。上下は移動に影響しない）
     const sin = Math.sin(this.yaw);

@@ -7,7 +7,13 @@ const CENTER = '#e8944a';
 const SURROUND = '#8f97a8';
 const CENTER_RADIUS = 52;
 
-function circle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string): void {
+function circle(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  fill: string,
+): void {
   ctx.fillStyle = fill;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);

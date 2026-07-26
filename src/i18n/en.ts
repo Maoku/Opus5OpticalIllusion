@@ -150,8 +150,7 @@ export const en: Dictionary = {
     },
     penroseTriangle: {
       title: 'Penrose triangle',
-      appearance:
-        'Three beams meet at right angles in a closed triangle. No such solid exists.',
+      appearance: 'Three beams meet at right angles in a closed triangle. No such solid exists.',
       explanation:
         'One beam is in fact cut through, and the two separated faces line up only from this exact viewpoint. The visual system assumes strongly that surfaces which appear to touch lie at the same depth. That assumption is almost always right, which is why it goes unquestioned. One step sideways and the break is obvious.',
       reference:
@@ -210,8 +209,7 @@ export const en: Dictionary = {
         'A face turns slowly towards you. It is not a face at all: it is a mould, hollow on the inside.',
       explanation:
         'The knowledge that faces stick out is so strong that it overrules the shading and motion cues telling you this one caves in. A hollow face appears to follow you as it rotates — an unavoidable consequence of reading a concave surface as convex. Lighting from above rather than below makes the illusion stronger still.',
-      reference:
-        'Hollow-Face illusion, widely reported by Richard Gregory and colleagues.',
+      reference: 'Hollow-Face illusion, widely reported by Richard Gregory and colleagues.',
       caption: 'Knowledge overrules the evidence of the eye.',
     },
     ponzoCorridor: {

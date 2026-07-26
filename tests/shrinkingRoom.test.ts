@@ -39,14 +39,7 @@ async function makeHarness(): Promise<Harness> {
   const player = new PlayerController(camera, collision);
   const viewpoint = new ViewpointController(host, player);
   const lighting = new Lighting(scene, quality);
-  const exhibits = new ExhibitManager(
-    host,
-    lighting,
-    player,
-    viewpoint,
-    collision,
-    new AudioBus(),
-  );
+  const exhibits = new ExhibitManager(host, lighting, player, viewpoint, collision, new AudioBus());
   await exhibits.add(shrinkingRoom);
   return {
     player,

@@ -23,7 +23,10 @@ export interface Interval {
 /** [start, end] から cuts を差し引いた残りの区間を返す */
 export function subtractIntervals(start: number, end: number, cuts: Interval[]): Interval[] {
   const sorted = cuts
-    .map((c) => ({ from: Math.max(start, Math.min(c.from, c.to)), to: Math.min(end, Math.max(c.from, c.to)) }))
+    .map((c) => ({
+      from: Math.max(start, Math.min(c.from, c.to)),
+      to: Math.min(end, Math.max(c.from, c.to)),
+    }))
     .filter((c) => c.to - c.from > 1e-6)
     .sort((a, b) => a.from - b.from);
 
@@ -75,10 +78,7 @@ function cutFor(w: WallSpec, d: Doorway): Interval | null {
  * 隣接エリアの共有壁は同じ開口で両側とも切られるため、
  * 通路の端に壁が残ることはない（layout.ts の図を参照）。
  */
-export function buildWallPieces(
-  area: AreaDefinition,
-  doorways: readonly Doorway[],
-): WallPiece[] {
+export function buildWallPieces(area: AreaDefinition, doorways: readonly Doorway[]): WallPiece[] {
   const pieces: WallPiece[] = [];
 
   for (const w of wallsOf(area)) {
@@ -88,7 +88,11 @@ export function buildWallPieces(
       if (interval) cuts.push({ interval, doorway: d });
     }
 
-    for (const solid of subtractIntervals(w.from, w.to, cuts.map((c) => c.interval))) {
+    for (const solid of subtractIntervals(
+      w.from,
+      w.to,
+      cuts.map((c) => c.interval),
+    )) {
       pieces.push({
         axis: w.axis,
         at: w.at,
