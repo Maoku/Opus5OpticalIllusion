@@ -83,9 +83,10 @@ Open the URL it prints (http://localhost:5173 by default).
 | `npm run lint` | ESLint |
 | `npm run format` | Prettier |
 
-`npm run build` writes to `dist/` (not tracked by Git). `base` is set from an
-environment variable, since the default assumes subpath hosting like GitHub
-Pages. For serving from the root:
+`npm run build` writes to `dist/` (not tracked by Git). Asset references are
+relative (`base: './'`), so the same `dist/` works when served from the root or
+from a subpath such as GitHub Pages. Override it when a host needs absolute
+paths:
 
 ```bash
 BASE_PATH=/ npm run build
