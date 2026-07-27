@@ -1,8 +1,9 @@
 import { defineConfig } from 'vitest/config';
 
-// GitHub Pages 配信を想定して base を切り替える。
-// ルート配信（Netlify / Cloudflare Pages）なら BASE_PATH=/ を渡す。
-const base = process.env.BASE_PATH ?? '/';
+// 既定は相対パス出力。dist/ をルートに置いても GitHub Pages のような
+// サブパスに置いても、同じ成果物がそのまま動く。
+// 絶対パスが必要な配信先では BASE_PATH=/ などを渡して上書きする。
+const base = process.env.BASE_PATH ?? './';
 
 export default defineConfig({
   base,

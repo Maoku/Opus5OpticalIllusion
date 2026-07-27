@@ -79,8 +79,9 @@ npm run dev
 | `npm run format` | Prettier |
 
 `npm run build` の出力先は `dist/`（Git 管理外）。
-GitHub Pages のようなサブパス配信を前提に `base` は環境変数で切り替えます。
-ルート配信なら次のようにします。
+アセット参照は相対パス（`base: './'`）なので、ルート配信でも GitHub Pages の
+サブパス配信でも、`dist/` をそのまま置けば動きます。
+絶対パスが必要な配信先では環境変数で上書きします。
 
 ```bash
 BASE_PATH=/ npm run build
