@@ -28,6 +28,19 @@ function at(value: Tree, path: string): string {
 const jaTree = ja as unknown as Tree;
 const enTree = en as unknown as Tree;
 
+/**
+ * D1「二つの真実」の例外（§5.4 / ROOM_D §1）。
+ *
+ * 字は英語版でも「真」「偽」のまま固定する確定方針なので、
+ * 英語辞書に CJK が出るのはここだけ。逆に日本語版ではグロスを描かないので、
+ * `ja.exhibits.twoTruths.glyphGloss` は「空文字であること」が仕様になる。
+ */
+const CJK_ALLOWED_IN_EN = new Set([
+  'exhibits.twoTruths.explanation',
+  'exhibits.twoTruths.glyphGloss',
+]);
+const EMPTY_ALLOWED_IN_JA = new Set(['exhibits.twoTruths.glyphGloss']);
+
 // §5.2 / §9: 型で拾えない欠落・プレースホルダのずれをここで拾う
 describe('dictionary parity', () => {
   it('has identical key structures', () => {
@@ -36,9 +49,17 @@ describe('dictionary parity', () => {
 
   it('has no empty strings', () => {
     for (const path of paths(jaTree)) {
-      expect(at(jaTree, path).trim(), `ja.${path}`).not.toBe('');
+      if (!EMPTY_ALLOWED_IN_JA.has(path)) {
+        expect(at(jaTree, path).trim(), `ja.${path}`).not.toBe('');
+      }
       expect(at(enTree, path).trim(), `en.${path}`).not.toBe('');
     }
+  });
+
+  // §5.4: グロスは「日本語では描かない」ことが仕様。空文字がその指示にあたる
+  it('leaves the Japanese glyph gloss empty on purpose', () => {
+    expect(ja.exhibits.twoTruths.glyphGloss).toBe('');
+    expect(en.exhibits.twoTruths.glyphGloss).toContain('true');
   });
 
   it('keeps placeholders consistent between languages', () => {
@@ -53,9 +74,17 @@ describe('dictionary parity', () => {
   it('leaves no Japanese in the English dictionary', () => {
     const cjk = /[぀-ヿ一-鿿]/;
     for (const path of paths(enTree)) {
-      // D1「二つの真実」の字は意図的に日本語のまま残す（§5.4）。
-      // その例外がまだ存在しないので、現時点では全件が非 CJK であるべき。
+      // D1「二つの真実」の字だけは意図的に日本語のまま残す（§5.4）。
+      // それ以外に CJK が出たら訳し忘れである。
+      if (CJK_ALLOWED_IN_EN.has(path)) continue;
       expect(cjk.test(at(enTree, path)), `en.${path}`).toBe(false);
+    }
+  });
+
+  // 例外が「D1 の字を残すため」以外に広がっていないこと
+  it('keeps the Japanese-in-English exception to the D1 glyphs', () => {
+    for (const path of CJK_ALLOWED_IN_EN) {
+      expect(at(enTree, path), path).toMatch(/[真偽]/);
     }
   });
 });

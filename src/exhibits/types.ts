@@ -31,11 +31,13 @@ export type RevealKind =
  * 「帯を出す」と「見下ろす」は本来独立で、まとめてしまうと
  * チェッカーシャドウのように「帯は出るがカメラは水平のまま」になる。
  *
- *   orbit   … 回り込んで破綻を見せる
- *   topDown … 真上から本当の形を見せる
- *   tilt    … 方位はそのままに見下ろす。俯瞰しつつ立体の関係も残したいとき
+ *   orbit    … 回り込んで破綻を見せる
+ *   topDown  … 真上から本当の形を見せる
+ *   tilt     … 方位はそのままに見下ろす。俯瞰しつつ立体の関係も残したいとき
+ *   traverse … 2 つの ViewSpot のあいだを弧を描いて渡る（ROOM_D §2.1 / D1）。
+ *              **途中の無意味な状態こそが種明かし**なので、中間で一度止める
  */
-export type RevealCameraKind = 'orbit' | 'topDown' | 'tilt';
+export type RevealCameraKind = 'orbit' | 'topDown' | 'tilt' | 'traverse';
 
 /** revealCamera === 'tilt' の詰め方 */
 export interface RevealTilt {
@@ -103,8 +105,16 @@ export interface HintContent {
   caption?: string;
   /** キャプションに添える注意書き（D6 の画面輝度など、§4.5） */
   notice?: string;
-  /** D1 専用: 字が結ばれた後に出すグロスラベル。ja では空文字（§5.4） */
+  /**
+   * D1 専用: 字が結ばれた後に出すグロスラベル。ja では空文字（§5.4）。
+   * 視点 A・B の 2 行を改行で区切る（`真 — “true”` / `偽 — “false”`）。
+   */
   glyphGloss?: string;
+  /**
+   * D3 専用: 回廊を一周し終えた来館者に見せる集計。
+   * `{total}` と `{count}` を実数で置き換える。
+   */
+  counter?: string;
 }
 
 /** 辞書に存在しないキーはコンパイルエラーになる（§5.2） */
@@ -199,6 +209,12 @@ export interface BuildContext {
   quality: QualityLevel;
   /** viewSpots の eye 座標が渡る（形状の逆算に使う） */
   eyes: THREE.Vector3[];
+  /**
+   * 描画に使っているカメラ。
+   * 「見られているか」が入力になる展示（D3）と、視点に応じて表示を変える展示
+   * （D1 のグロスラベル）が参照する。書き換えてはならない。
+   */
+  camera: THREE.PerspectiveCamera;
   definition: ExhibitDefinition;
   /**
    * 展示がプレイヤー状態（目線高さ・移動速度）を一時的に上書きするためのハンドル。

@@ -9,7 +9,7 @@ import { poseLookingAt, type ViewpointController } from '../viewpoint/ViewpointC
 import type { Lighting } from '../world/Lighting';
 import type { Collision } from '../world/Collision';
 import type { AudioBus } from '../core/AudioBus';
-import { saturate } from '../utils/math';
+import { saturate, shortestAngleDelta } from '../utils/math';
 import { areaAt } from '../data/layout';
 import { clampToBounds, pickOrbitViewpoint } from './common/revealCamera';
 import type {
@@ -124,6 +124,7 @@ export class ExhibitManager implements Updatable {
       assets: this.app.assets,
       quality: this.app.quality.level,
       eyes: spots.map((s) => s.eye.clone()),
+      camera: this.app.camera,
       definition,
       playerOverride: override,
       lighting: this.lighting,
@@ -225,6 +226,11 @@ export class ExhibitManager implements Updatable {
 
     const bounds = this.#boundsAt(centre.x, centre.z);
 
+    if (kind === 'traverse') {
+      this.#traverseReveal(record, centre);
+      return;
+    }
+
     if (kind === 'orbit') {
       // 正解視点から回り込む。破綻（桁の切れ目）が見える角度を、
       // 壁の外・他展示の中に出ないものから選ぶ（§11d-1）
@@ -295,6 +301,44 @@ export class ExhibitManager implements Updatable {
     const over = clampToBounds(bounds, centre.x, centre.z + 2.4);
     const eye = new THREE.Vector3(over.x, centre.y + 7.4, over.z);
     this.viewpoint.setRevealPose(poseLookingAt(eye, centre, 56), 2.4);
+  }
+
+  /**
+   * ViewSpot 間を渡る種明かし（ROOM_D §2.1 / D1「二つの真実」）。
+   *
+   * いま立っているほうの視点から、もう一方へ弧を描いて移る。
+   * **途中で字が崩れている時間こそが種明かし**なので、中間のポーズで必ず
+   * 一度止める。到着してから戻ると、同じ断片が別の字を結んでいる。
+   */
+  #traverseReveal(record: ExhibitRecord, centre: THREE.Vector3): void {
+    const current = this.viewpoint.current;
+    const fromIndex = current && current.exhibitId === record.definition.id ? current.index : 0;
+    const from = record.spots[fromIndex];
+    const to = record.spots.find((spot) => spot !== from);
+    if (!from || !to) return;
+
+    const offsetA = from.eye.clone().sub(centre);
+    const offsetB = to.eye.clone().sub(centre);
+    const angleA = Math.atan2(offsetA.x, offsetA.z);
+    // 近いほうへ回る。真裏の視点でも遠回りしない
+    const angleB = angleA + shortestAngleDelta(angleA, Math.atan2(offsetB.x, offsetB.z));
+
+    const poseAt = (fraction: number): ReturnType<typeof poseLookingAt> => {
+      const angle = THREE.MathUtils.lerp(angleA, angleB, fraction);
+      const radius = THREE.MathUtils.lerp(offsetA.length(), offsetB.length(), fraction);
+      const eye = new THREE.Vector3(
+        centre.x + Math.sin(angle) * radius,
+        THREE.MathUtils.lerp(from.eye.y, to.eye.y, fraction),
+        centre.z + Math.cos(angle) * radius,
+      );
+      const fov = THREE.MathUtils.lerp(from.definition.fov, to.definition.fov, fraction);
+      return poseLookingAt(eye, centre, fov);
+    };
+
+    this.viewpoint.setRevealSequence([
+      { pose: poseAt(0.5), duration: 2.2, hold: 1.2 },
+      { pose: poseAt(1), duration: 2.2, hold: 0 },
+    ]);
   }
 
   /** 種明かしの視点を収めたいエリアの矩形 */

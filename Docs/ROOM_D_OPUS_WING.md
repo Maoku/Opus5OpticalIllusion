@@ -341,6 +341,25 @@ export interface BuildContext {
 
 Room D は全部作らなくても成立する。**コストと効果が釣り合う順**に3段階へ分ける。
 
+> **実装状況（2026.07.28）— Tier 1 + Tier 2 まで実装済み。**
+>
+> | 展示 | 実装 | 実体 |
+> |---|---|---|
+> | D6 縞の下の嘘 | ✅ | `src/exhibits/underTheStripes.ts` |
+> | D4 聞こえる衝突 | ✅ | `src/exhibits/audibleCollision.ts` |
+> | D3 後ろの正面 | ✅ | `src/exhibits/behindYou.ts` + `common/VisibilityTracker.ts` |
+> | D5 嘘つきの影 | ✅ | `src/exhibits/lyingShadow.ts` + `common/visualHull.ts` + `tools/buildShadowHull.ts` |
+> | D2 縮んでいく部屋 | ✅ | `src/exhibits/shrinkingRoom.ts` |
+> | D1 二つの真実 | ✅ | `src/exhibits/twoTruths.ts` + `common/GlyphSampler.ts` + `common/dualView.ts` |
+> | D7 果てのない回廊 | — | Tier 3。**やらない前提**（§3 Tier 3 / §6-4 のとおり） |
+>
+> 設計からの変更点は 2 つだけ:
+> - **D5 のタネあかし**は「ダイヤルが 180° 回る」ではなく、
+>   **±42° を自動で往復**させる（意味 → 無意味 → 意味）。180° 回すと光源が
+>   スクリーンの裏へ回り、影が消えて「無意味な染み」ですらなくなるため。
+> - **D3 の「入口の扉が閉まっている」**は、扉を廃した §12b と両立しないので、
+>   中庭の板に集計を出す形にした。一周し終えるまで板は伏せてある。
+
 ### Tier 1 — 「安くて強い」3点 〔合計 1.5日 + 部屋 0.5日〕
 
 | 展示 | 工数 | 依存 |

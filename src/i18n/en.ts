@@ -36,6 +36,7 @@ export const en: Dictionary = {
     orientationBody:
       'Landscape gives the exhibits more room. You can keep browsing in portrait if you prefer.',
     audioEnable: 'Enable sound',
+    dialTurn: 'Turn the dial',
     entranceTitle: 'Optical Illusion Museum',
     entranceBody:
       'Stand on a glowing circle on the floor and you will be moved to the viewpoint where that exhibit works.\nHints stay hidden. Look with your own eyes first.',
@@ -249,6 +250,39 @@ export const en: Dictionary = {
       reference:
         'An original exhibit, applying the Munker–White illusion to real objects under real light.',
       caption: 'This exhibit does not survive a screenshot.',
+    },
+    behindYou: {
+      title: 'Behind You',
+      appearance:
+        'Twelve small statues line a cloister. You walk past them one by one, and nothing happens.',
+      explanation:
+        'The statues only change while they are outside your view: they shift their pose, turn, and trade places with a neighbour. Each change completes in a single frame, so by the time you turn back they wear the face they have “always” had. We hold surprisingly little visual detail at once; most of what you think you saw has already been replaced by a summary the brain rebuilds on demand. That is why a change made while your gaze is elsewhere leaves no trace. Walk a full lap and the panel in the courtyard tells you how many of them moved.',
+      reference:
+        'An original exhibit, built on change blindness (Rensink, O’Regan & Clark 1997; Simons & Levin 1998). The design of the experience is new; the perceptual effect is not.',
+      caption: 'This exhibit does not survive a screenshot.',
+      counter: '{count} of {total} statues changed.',
+    },
+    lyingShadow: {
+      title: 'The Lying Shadow',
+      appearance:
+        'A meaningless lump of metal on a plinth. The shadow it casts on one screen is a bird; the shadow on the other is a fish. One object, two lies at once.',
+      explanation:
+        'One lump, two shadows. A solid that satisfies both silhouettes at once is what remains after you carve away everything that falls outside either shadow — a shape called a visual hull. Turn the dial and the lights swing; at the angles in between, both shadows collapse into stains that mean nothing. The meaning was never in the lump. It is in the angle of the light, and in your reading of it. A shadow is a projection of a shape, not proof of one.',
+      reference:
+        'An original exhibit, built on shadow art (Mitra & Pauly 2009 and others). The design of the experience is new; the perceptual effect is not.',
+      caption: 'This exhibit does not survive a screenshot.',
+    },
+    twoTruths: {
+      title: 'Two Truths',
+      appearance:
+        'Hundreds of small fragments hang in mid-air — a cloud of dust, nothing more. Stand on marker A and they resolve into one Japanese character; stand on marker B, on the far side, and the very same fragments spell another.',
+      explanation:
+        'Not one fragment moved. The only thing that moved was you. Each piece sits where it overlaps a stroke of 真 (“true”) seen from A, and a stroke of 偽 (“false”) seen from B. Get the image on the retina right and the brain takes the most natural reading available: characters floating in the air. The characters are Japanese, and they are left that way on purpose — the subject of this piece is form, not language, and if you cannot read them you get the purer version of it: a shape rising out of dust, and a different shape when you walk. Two photographs would not carry any of this. You have to walk between the two viewpoints yourself, through the meaningless state in the middle, before it becomes one sculpture.',
+      reference:
+        'An original exhibit, built on distributed anamorphic sculpture (Michael Murphy, James Hopkins and others). The design of the experience is new; the perceptual effect is not.',
+      caption: 'This exhibit does not survive a screenshot.',
+      // 字が結ばれた直後に、字の脇へ出す（§5.4）。1 行目が視点 A、2 行目が視点 B
+      glyphGloss: '真 — “true”\n偽 — “false”',
     },
   },
 };
