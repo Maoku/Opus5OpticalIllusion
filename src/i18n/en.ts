@@ -224,12 +224,13 @@ export const en: Dictionary = {
     shrinkingRoom: {
       title: 'The Shrinking Room',
       appearance:
-        'An unremarkable corridor. As you walk, the ceiling seems to rise higher and higher.',
+        'An unremarkable corridor, with a horizontal rail running the length of both walls. As you walk, the rail seems to curve upwards and the ceiling seems to rise higher and higher. There is a height gauge at the far end.',
       explanation:
-        'The ceiling never moved. While you were in this room your eye height drifted from 1.60 m down to 1.15 m, slowly enough to go unnoticed. Eye height is the baseline you measure a space against; lower the baseline and the same room feels larger. The horizontal line at the exit marks where your eyes were when you came in. It is now above your head.',
+        'Neither the ceiling nor the walls moved by a millimetre. While you walked, your eye height drifted from 1.60 m down to 1.15 m, slowly enough to go unnoticed. The rail sits at 1.60 m from end to end. On the way in it was exactly level with your eyes, so it read as dead straight; as you sank, it began to curve up away from you. Eye height is the baseline you measure a space against — lower the baseline and the same room becomes larger. Look at the gauge at the far end: the orange band is where your eyes were when you came in, the green marker is where they are now. The gap is the height you lost.',
       reference:
         'An original exhibit, built on eye-height scaling of size and distance (Sedgwick and others). The design of the experience is new; the perceptual effect is not.',
       caption: 'This exhibit does not survive a screenshot.',
+      scale: 'Your eye height when you came in\nYour eye height now',
     },
     audibleCollision: {
       title: 'Audible Collision',
