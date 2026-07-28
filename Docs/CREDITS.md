@@ -11,13 +11,17 @@
 | 種別 | 出どころ |
 |---|---|
 | 3D モデル | すべて three.js のプリミティブと手続き生成（`src/exhibits/`, `src/world/`） |
+| 影絵の塊（嘘つきの影） | 2 枚のシルエットから彫った visual hull。シルエットも多角形として自前定義（`src/exhibits/common/shadowHullSpec.ts`）。`tools/buildShadowHull.ts` が glTF に焼く |
 | 顔のレリーフ（くぼんだ顔） | ガウシアンの重ね合わせで手続き生成（`src/exhibits/hollowMask.ts`） |
 | テクスチャ | すべて Canvas 2D で手続き生成（`src/exhibits/common/CanvasTexture.ts`） |
 | ワールド内の文字 | システムフォントを Canvas に焼く（`src/world/TextPlate.ts`）。フォントは配信しない |
 | 音 | すべて WebAudio で合成（`src/core/AudioBus.ts`）。音源ファイルは無い |
 | 解説文 | すべて独自に執筆（`src/i18n/ja.ts`, `src/i18n/en.ts`） |
 
-したがって `public/` に置かれた素材はなく、帰属表示の義務も発生していない。
+`public/models/shadowHull.glb` だけは配信物にファイルとして含まれるが、
+これは第三者アセットではなく、上表のシルエット定義からビルド時に生成した中間成果物である
+（`npm run build:hull` で誰でも作り直せる。ファイルが無ければ実行時に彫り直す）。
+それ以外に `public/` へ置いた素材はなく、帰属表示の義務も発生していない。
 
 将来、外部アセット（CC0 のスキャンモデルなど）を導入する場合は、
 この表に **出典・作者・ライセンス・入手日** を追記すること。

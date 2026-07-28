@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "build:hull": "node --experimental-strip-types tools/buildShadowHull.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",

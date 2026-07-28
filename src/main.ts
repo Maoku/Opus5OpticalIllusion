@@ -193,8 +193,10 @@ function warpTo(record: ExhibitRecord): void {
     viewpoint.focusExhibit(record.definition.id, 0);
     return;
   }
+  // ViewSpot を持たないゾーン型展示（D2 / D3）。手前に降ろし、展示のほうを向かせる。
+  // yaw = π は +Z 向き、つまり展示に背を向ける向きだった
   const p = record.definition.position;
-  player.warpTo(p.x, p.z + 3, Math.PI);
+  player.warpTo(p.x, p.z + 3, 0);
 }
 
 function anyModalOpen(): boolean {

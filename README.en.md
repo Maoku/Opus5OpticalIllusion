@@ -8,7 +8,7 @@ A walkable 3D museum of optical illusions, in the browser. Built by Claude Opus 
 
 Live: https://maoku.github.io/Opus5OpticalIllusion/
 
-Seventeen exhibits are laid out across the building, and each one only works
+Twenty exhibits are laid out across the building, and each one only works
 from the spot you are meant to stand in.
 
 The answers stay hidden at first. Open a hint and the explanation arrives in
@@ -18,7 +18,9 @@ the trick itself.
 The whole thing is Three.js + TypeScript and nothing else — **no external 3D
 models, textures, audio files, or fonts**. Shapes come from three.js primitives
 and procedural generation, textures from Canvas 2D, sound from WebAudio
-synthesis ([Docs/CREDITS.md](Docs/CREDITS.md)).
+synthesis ([Docs/CREDITS.md](Docs/CREDITS.md)). The one file that does ship, the
+lump in *The Lying Shadow*, is carved at build time from silhouettes defined in
+this repository.
 
 ## Exhibits
 
@@ -27,10 +29,10 @@ synthesis ([Docs/CREDITS.md](Docs/CREDITS.md)).
 | Room A | Illusions on a Flat Surface | Café Wall illusion / Müller-Lyer illusion / Checker shadow illusion / Ebbinghaus illusion / Hering illusion / Rotating Snakes |
 | Room B | Impossible Solids | Penrose triangle / Penrose stairs / Necker cube / Anamorphosis |
 | Room C | Space and the Body | Ames room / Beuchet chair / Hollow-Face illusion / Ponzo illusion corridor |
-| Room D | The Opus Wing: Illusions That Cannot Be Photographed | The Shrinking Room / Audible Collision / Under the Stripes |
+| Room D | The Opus Wing: Illusions That Cannot Be Photographed | Under the Stripes / Audible Collision / Behind You / The Lying Shadow / The Shrinking Room / Two Truths |
 
 Room D collects illusions that cannot exist in a still image — they need
-movement, sound, or time. The experiences themselves are original, but the known
+movement, sound, time, or your own gaze. The experiences themselves are original, but the known
 phenomena and prior work behind each one are credited in
 [Docs/ROOM_D_OPUS_WING.md](Docs/ROOM_D_OPUS_WING.md) and in each exhibit's
 `reference`.
@@ -98,19 +100,22 @@ src/
   core/        rendering, loop, input abstraction, settings, audio, quality control
   world/       architecture (rooms / walls / lighting / collision / signage)
   data/        room and corridor layout definitions
-  exhibits/    the 17 exhibits and their shared parts (panels, impossible figures,
-               gaze projection, reveal camera)
+  exhibits/    the 20 exhibits and their shared parts (panels, impossible figures,
+               gaze projection, reveal camera, glyph sampling, dual-view
+               anamorphosis, visibility tracking, visual hull)
   viewpoint/   ViewSpot (guiding you to the spot, locking the camera there)
   player/      movement and look controls
   ui/          HUD, hints, exhibit list, settings, virtual pad
   i18n/        Japanese / English dictionaries
 tests/         Vitest (layout consistency, placement checks, input, UI, and more)
-tools/         font subsetting (unused for now; intended for a future display face)
+tools/         visual hull generation (The Lying Shadow), font subsetting
 Docs/          plans, improvement plans, QA checklist, credits
 ```
 
-`public/audio/`, `public/models/`, and `public/textures/` are empty — everything
-is generated procedurally.
+The only file under `public/` is `models/shadowHull.glb`. It is not an imported
+asset either: it is carved at build time from the silhouettes defined in this
+repository (`npm run build:hull`), and if the file is missing the exhibit carves
+it again at runtime.
 
 ## Documentation
 

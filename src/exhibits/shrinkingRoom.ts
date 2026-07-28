@@ -147,7 +147,8 @@ export const shrinkingRoom: ExhibitDefinition = {
   textKey: 'shrinkingRoom',
   room: 'opus',
   kind: 'zone',
-  order: 22,
+  // 順路は D6 → D4 → D3 → D5 → D2 → D1（ROOM_D §4）
+  order: 24,
   reveal: 'none',
   position: POSITION,
   rotationY: 0,
