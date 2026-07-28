@@ -27,21 +27,38 @@ const BOARD_TOP = 0.78;
 
 const LIGHT_ALBEDO = 0.42;
 /**
- * 影の中に入ったときの照度の比（実測値）。
- * albedoDark = LIGHT_ALBEDO * ratio とすると、A と B が同じ輝度で描かれる。
+ * 影の中に入ったときの照度の比（実測値）。**RGB 別に持つ**。
+ * albedoDark_c = LIGHT_ALBEDO * ratio_c とすると、A と B が同じ色で描かれる。
+ *
+ * ★ スカラーひとつでは足りない（2026.07 修正）。
+ *   A を照らすのは展示スポット 0xfff3e0 と部屋のキーライト 0xfff6e8、
+ *   どちらも暖色である。いっぽう B は影の中なので環境光（ほぼ無彩色）しか
+ *   届かない。**A と B は照らしている光の色が違う**。
+ *   スカラー 0.236 は明るさだけを合わせていたので、実測すると
+ *   A (159,153,144) / B (160,158,157) —— R は 1 階調差でも B チャンネルは 13 階調差。
+ *   種明かしの帯は A と同じ照明で描かれるため、B のマスとの境目に
+ *   はっきり色の段差が出ていた。チャンネルごとに反射率を決めて解消する。
+ *   （放射輝度をチャンネル単位で一致させれば、そのあとの ACES が
+ *    チャンネルを混ぜても出力は必ず一致する。）
  *
  * 校正時の実測（high プリセット / gallery の環境光 / ACES トーンマッピング /
- * オフスクリーンの WebGLRenderTarget から readRenderTargetPixels で採取）:
- *   A（影の外の暗タイル）72 / B（影の中の明タイル）72 —— 完全一致。
- *   正解視点（目線 1.6m）と種明かしの俯瞰視点（3.55m）で **同じ値**。
+ * ドローイングバッファから readPixels で採取）:
+ *   A (161,158,157) / B (160,158,157) / 帯 (160,157,156) —— 全チャンネル 1 階調以内。
+ *   正解視点（目線 1.6m）と種明かしの俯瞰視点（3.55m）で同じ値。
  *
- * 2026.07 に 0.185 から改めた（§11a）。俯瞰の種明かしを入れたことで、
- * それまで見えていなかった視線依存が表に出たため。下の MeshLambertMaterial
- * の注記を参照。
- * 後処理を追加したら必ず再校正すること（§8 リスク表「明度系錯視が後処理で壊れる」）。
+ * スポットやキーライトの色、後処理を触ったら必ず再校正すること
+ * （§8 リスク表「明度系錯視が後処理で壊れる」）。
  */
-const CALIBRATION = 0.236;
-const DARK_ALBEDO = LIGHT_ALBEDO * CALIBRATION;
+const CALIBRATION = { r: 0.241, g: 0.255, b: 0.287 } as const;
+
+/** 暗タイルと種明かしの帯は同一の反射率でなければならない。生成はここに集約する。 */
+function darkAlbedo(): THREE.Color {
+  return new THREE.Color(
+    LIGHT_ALBEDO * CALIBRATION.r,
+    LIGHT_ALBEDO * CALIBRATION.g,
+    LIGHT_ALBEDO * CALIBRATION.b,
+  );
+}
 
 /** 影の外の暗いマス */
 const TILE_A = { col: 3, row: 4 };
@@ -112,7 +129,7 @@ function build(ctx: BuildContext): ExhibitInstance {
     color: new THREE.Color(LIGHT_ALBEDO, LIGHT_ALBEDO, LIGHT_ALBEDO),
   });
   const darkMaterial = new THREE.MeshLambertMaterial({
-    color: new THREE.Color(DARK_ALBEDO, DARK_ALBEDO, DARK_ALBEDO),
+    color: darkAlbedo(),
   });
   const lightTiles = new THREE.Mesh(mergeGeometries(lightGeos, false)!, lightMaterial);
   const darkTiles = new THREE.Mesh(mergeGeometries(darkGeos, false)!, darkMaterial);
@@ -164,9 +181,9 @@ function build(ctx: BuildContext): ExhibitInstance {
   const stripLength = a.distanceTo(b) + TILE * 0.9;
   const strip = new THREE.Mesh(
     new THREE.PlaneGeometry(stripLength, TILE * 0.44),
-    // 帯は暗タイルと同一の見え方でなければならない。材質も揃える
+    // 帯は暗タイルと同一の見え方でなければならない。材質も反射率も揃える
     new THREE.MeshLambertMaterial({
-      color: new THREE.Color(DARK_ALBEDO, DARK_ALBEDO, DARK_ALBEDO),
+      color: darkAlbedo(),
       transparent: true,
       opacity: 0,
     }),
