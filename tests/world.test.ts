@@ -103,15 +103,45 @@ describe('the Opus wing is open from the start', () => {
     expect(areaAt(at.x, at.y)?.id).toBe('roomD');
   });
 
-  it('leaves the dark alcove reachable only through its single opening', () => {
+  it('opens the dark alcove at exactly two places', () => {
     const collision = museumCollision();
     const radius = 0.35;
-    // roomDNorth から西へ入る（開口は x = -4, z ∈ [-24, -20]）
+    // roomDNorth から西へ入る（主入口は x = -4, z ∈ [-24, -20]）
     const inside = collision.move(new THREE.Vector2(-2, -22), new THREE.Vector2(-7, -22), radius);
     expect(areaAt(inside.x, inside.y)?.id).toBe('roomDAlcove');
-    // 大広間との境（z = -28）は塞がっている
+    // 南口（x ∈ [-6.5, -4.5]）から大広間の西へ抜けられる
+    const through = collision.move(
+      new THREE.Vector2(-5.5, -26),
+      new THREE.Vector2(-5.5, -31),
+      radius,
+    );
+    expect(through.y).toBe(-31);
+    expect(areaAt(through.x, through.y)?.id).toBe('roomD');
+    // 南壁の残りは塞がったまま。D1 の視点 A が背負う北壁に穴を開けてはいけない
     const blocked = collision.move(new THREE.Vector2(-9, -26), new THREE.Vector2(-9, -31), radius);
     expect(blocked.y).toBeGreaterThan(-28);
+  });
+
+  /**
+   * 西半分が袋小路になっていた回帰（D5 / D1 が壁の裏に隠れる）。
+   * D2 の縮む廊下を迂回せずに、アルコーブ経由で D5 の立ち位置まで歩けること。
+   */
+  it('reaches the west half of the hall without squeezing past the shrinking corridor', () => {
+    const collision = museumCollision();
+    const radius = 0.35;
+    const waypoints: Array<[number, number]> = [
+      [-2, -22], // roomDNorth
+      [-7, -22], // アルコーブ（D6）
+      [-5.5, -26], // 南口の手前
+      [-5.5, -30], // 大広間の西へ
+      [-7.5, -30], // D5 の立ち位置
+      [-9.5, -40], // D1 の視点 A
+    ];
+    let at = new THREE.Vector2(waypoints[0]![0], waypoints[0]![1]);
+    for (const [x, z] of waypoints.slice(1)) {
+      at = collision.move(at, new THREE.Vector2(x, z), radius);
+      expect([at.x, at.y], `blocked before (${x}, ${z})`).toEqual([x, z]);
+    }
   });
 
   it('has no doorway left marked as a door', () => {
