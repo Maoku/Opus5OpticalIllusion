@@ -1,8 +1,10 @@
 import * as THREE from 'three';
-import { TAU, shortestAngleDelta } from '../utils/math';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { TAU, damp, shortestAngleDelta } from '../utils/math';
 import { createTextPlate, type TextPlate } from '../world/TextPlate';
 import { VisibilityTracker, type VisibilityTarget } from './common/VisibilityTracker';
 import { footprintAround } from './common/placement';
+import { assembleFigure, createFigureGeometry, type FigureGeometry } from './common/statueFigure';
 import type { BuildContext, ExhibitDefinition, ExhibitInstance, HintContent } from './types';
 
 /**
@@ -38,32 +40,50 @@ const PLINTH_RADIUS = 0.24;
 /** ゾーン（回廊）の半径 */
 const ZONE_HALF = 5.0;
 
+/**
+ * 誘導矢印の輪。彫像（3.1）の外、ゾーンの縁（5.0）の内側に敷く。
+ * 台座を避けて歩ける線でもある。
+ */
+const GUIDE_RADIUS = 4.15;
+/**
+ * 矢印の枚数。円周は約 26m あるので、12 枚では 2m 間隔になり
+ * 「点々と落ちている印」にしか見えない。1m 強の間隔まで詰めて初めて道になる。
+ */
+const GUIDE_COUNT = 24;
+
 /** 変化を試みる間隔（秒）。速すぎると「見ていない隙」に間に合わない */
 const CHANGE_INTERVAL = 2.4;
 /** 直近これだけの秒数に注視された個体は触らない */
 const GAZE_MEMORY = 2.0;
 
 interface Pose {
-  /** 腕の開き（ラジアン） */
+  /** 腕を横へ開く角（ラジアン、正で外向き） */
   arms: [number, number];
+  /** 腕を前後へ振る角（正で前） */
+  swing: [number, number];
   /** 頭の傾き */
   head: number;
-  /** 上体の傾き */
+  /** 頭の振り向き（正で +X 側へ） */
+  turn: number;
+  /** 上体の前後の傾き */
   lean: number;
+  /** 上体のひねり */
+  twist: number;
 }
 
 /** 姿勢の候補。差は大きすぎない。「別の像に置き換わった」ではなく「そうだったはず」に見せる */
 const POSES: readonly Pose[] = [
-  { arms: [0.15, 0.15], head: 0, lean: 0 },
-  { arms: [0.9, 0.12], head: 0.18, lean: 0.06 },
-  { arms: [0.2, 1.15], head: -0.14, lean: -0.05 },
-  { arms: [1.35, 1.35], head: 0.3, lean: 0.1 },
-  { arms: [0.45, 0.7], head: -0.25, lean: 0.03 },
+  { arms: [0.12, 0.12], swing: [0, 0], head: 0, turn: 0, lean: 0, twist: 0 },
+  { arms: [0.62, 0.14], swing: [0.35, -0.05], head: 0.16, turn: -0.32, lean: 0.05, twist: 0.12 },
+  { arms: [0.18, 0.8], swing: [-0.1, 0.5], head: -0.12, turn: 0.3, lean: -0.04, twist: -0.14 },
+  { arms: [1.05, 1.05], swing: [0.12, 0.12], head: 0.26, turn: 0, lean: 0.08, twist: 0 },
+  { arms: [0.3, 0.5], swing: [-0.22, 0.3], head: -0.2, turn: 0.16, lean: 0.06, twist: 0.08 },
 ];
 
 interface Statue {
   group: THREE.Group;
-  torso: THREE.Group;
+  /** 腰から上。ここで前後に曲がり、ひねる */
+  upperBody: THREE.Group;
   head: THREE.Object3D;
   /** 回すのは肩。腕はその子として付いてくる */
   arms: [THREE.Object3D, THREE.Object3D];
@@ -98,19 +118,14 @@ function coreCorner(index: number): THREE.Vector3 {
 /** 中庭の面までの距離（角ではなく面の中心まで） */
 const CORE_FACE_DISTANCE = CORE_RADIUS * Math.cos(Math.PI / COUNT);
 
-interface StatueParts {
+interface StatueParts extends FigureGeometry {
   plinth: THREE.BufferGeometry;
-  torso: THREE.BufferGeometry;
-  head: THREE.BufferGeometry;
-  arm: THREE.BufferGeometry;
 }
 
 function createParts(): StatueParts {
   return {
     plinth: new THREE.CylinderGeometry(PLINTH_RADIUS, PLINTH_RADIUS + 0.04, PLINTH_HEIGHT, 16),
-    torso: new THREE.CylinderGeometry(0.1, 0.15, 0.52, 14),
-    head: new THREE.SphereGeometry(0.085, 16, 12),
-    arm: new THREE.BoxGeometry(0.045, 0.3, 0.045),
+    ...createFigureGeometry(),
   };
 }
 
@@ -128,44 +143,98 @@ function createStatue(
   plinth.receiveShadow = true;
   group.add(plinth);
 
-  const torso = new THREE.Group();
-  torso.position.y = PLINTH_HEIGHT;
-  group.add(torso);
+  const figure = assembleFigure(parts, material);
+  figure.root.position.y = PLINTH_HEIGHT;
+  group.add(figure.root);
 
-  const body = new THREE.Mesh(parts.torso, material);
-  body.position.y = 0.26;
-  body.castShadow = true;
-  torso.add(body);
+  return { group, upperBody: figure.upperBody, head: figure.head, arms: figure.arms };
+}
 
-  const head = new THREE.Mesh(parts.head, material);
-  head.position.y = 0.61;
-  head.castShadow = true;
-  torso.add(head);
+/*
+ * --- 床の誘導矢印 -----------------------------------------------------------
+ *
+ * この展示は「一周する」ことが成立条件になっている（回り込まないと
+ * 反対側が視錐台から出ず、変えられる個体が生まれない）。だが回廊に入った
+ * 来館者には、まわりを歩けとはどこにも書いていない。矢印はその導線だけを
+ * 伝える。ネタは一切明かさない（ROOM_D §5: 予告した時点で錯視は死ぬ）。
+ *
+ * 光は矢印の向きへ流れる。12 枚を 1 メッシュに焼き、点灯の位相は
+ * 頂点属性 aPhase で配る（12 個のマテリアルを持たないため）。
+ */
+const GUIDE_VERT = /* glsl */ `
+attribute float aPhase;
+varying float vPhase;
+void main() {
+  vPhase = aPhase;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
 
-  // 肩を回転の中心にしたいので、腕は下端が肩に来る入れ子にする
-  const shoulders: THREE.Object3D[] = [];
-  for (const side of [-1, 1]) {
-    const shoulder = new THREE.Group();
-    shoulder.position.set(side * 0.12, 0.46, 0);
-    const arm = new THREE.Mesh(parts.arm, material);
-    arm.position.y = -0.15;
-    arm.castShadow = true;
-    shoulder.add(arm);
-    torso.add(shoulder);
-    shoulders.push(shoulder);
+/*
+ * head: 進行方向へ流れる光。位相をずらしてあるので矢印が指す順に灯る。
+ * 0.14 の下駄は消灯時の下限。光が来るまで真っ暗だと、線が道に見えない。
+ */
+const GUIDE_FRAG = /* glsl */ `
+precision highp float;
+varying float vPhase;
+uniform float uTime;
+uniform float uFade;
+uniform vec3 uColor;
+
+void main() {
+  float t = fract(uTime * 0.3 - vPhase);
+  float head = smoothstep(0.0, 0.10, t) * smoothstep(0.42, 0.10, t);
+  float alpha = (0.14 + head * 0.5) * uFade;
+  gl_FragColor = vec4(uColor, alpha);
+  #include <colorspace_fragment>
+}`;
+
+/** 矢印 1 枚。先端は +Z（進行方向）を向く */
+function createGuideArrow(): THREE.BufferGeometry {
+  const shape = new THREE.Shape();
+  // 先端を -Y に描く。rotateX(-90°) で -Y が +Z に移る
+  shape.moveTo(-0.18, 0.08);
+  shape.lineTo(0, -0.21);
+  shape.lineTo(0.18, 0.08);
+  shape.lineTo(0.18, 0.23);
+  shape.lineTo(0, -0.06);
+  shape.lineTo(-0.18, 0.23);
+  shape.closePath();
+  const geometry = new THREE.ShapeGeometry(shape);
+  geometry.rotateX(-Math.PI / 2);
+  return geometry;
+}
+
+/** 矢印を輪に並べて 1 枚のジオメトリにする。並ぶ向きは角度が増える方向 */
+function createGuideRing(): THREE.BufferGeometry {
+  const arrow = createGuideArrow();
+  const pieces: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < GUIDE_COUNT; i++) {
+    // 彫像の正面（slot）とはずらす。台座の真ん前に置くと像の足元と重なる
+    const angle = ((i + 0.5) / GUIDE_COUNT) * TAU;
+    const piece = arrow.clone();
+    // 接線方向へ向ける。+Z を (cos a, -sin a) に合わせる回転
+    piece.rotateY(angle + Math.PI / 2);
+    piece.translate(Math.sin(angle) * GUIDE_RADIUS, 0.014, Math.cos(angle) * GUIDE_RADIUS);
+    const phase = new Float32Array(piece.attributes.position!.count).fill(i / GUIDE_COUNT);
+    piece.setAttribute('aPhase', new THREE.BufferAttribute(phase, 1));
+    pieces.push(piece);
   }
-
-  return { group, torso, head, arms: [shoulders[0]!, shoulders[1]!] };
+  arrow.dispose();
+  const merged = mergeGeometries(pieces, false);
+  for (const piece of pieces) piece.dispose();
+  if (!merged) throw new Error('behindYou: failed to merge guide arrows');
+  return merged;
 }
 
 function applyPose(statue: Statue): void {
   const pose = POSES[statue.pose]!;
   statue.group.position.copy(slotPosition(statue.slot));
   statue.group.rotation.y = statue.yaw;
-  statue.torso.rotation.x = pose.lean;
-  statue.head.rotation.z = pose.head;
-  statue.arms[0].rotation.z = pose.arms[0];
-  statue.arms[1].rotation.z = -pose.arms[1];
+  statue.upperBody.rotation.set(pose.lean, pose.twist, 0);
+  statue.head.rotation.set(0, pose.turn, pose.head);
+  // 肩は左右で符号が逆。正の値をどちらも「外へ開く」に揃える
+  statue.arms[0].rotation.set(-pose.swing[0], 0, -pose.arms[0]);
+  statue.arms[1].rotation.set(-pose.swing[1], 0, pose.arms[1]);
 }
 
 function build(ctx: BuildContext): ExhibitInstance {
@@ -192,6 +261,26 @@ function build(ctx: BuildContext): ExhibitInstance {
     const b = coreCorner(i + 1).add(origin);
     ctx.collision.addSegment(a.x, a.z, b.x, b.z, 0.2, id);
   }
+
+  // --- 床の誘導矢印 ---------------------------------------------------------
+  const guideGeometry = createGuideRing();
+  const guideMaterial = new THREE.ShaderMaterial({
+    vertexShader: GUIDE_VERT,
+    fragmentShader: GUIDE_FRAG,
+    transparent: true,
+    depthWrite: false,
+    uniforms: {
+      uTime: { value: 0 },
+      uFade: { value: 0 },
+      // 床のマーカーは館内で色を揃える（ViewSpot と同じ）
+      uColor: { value: new THREE.Color(0x6fd2b0) },
+    },
+  });
+  const guide = new THREE.Mesh(guideGeometry, guideMaterial);
+  guide.renderOrder = 2;
+  // 回廊に入るまでは描かない（uFade=0 でも板は描画に乗る）
+  guide.visible = false;
+  root.add(guide);
 
   // --- 彫像 -----------------------------------------------------------------
   const parts = createParts();
@@ -287,6 +376,7 @@ function build(ctx: BuildContext): ExhibitInstance {
   let lapDone = false;
   let content: HintContent | null = null;
   let revealProgress = 0;
+  let guideFade = 0;
 
   const changedCount = (): number =>
     statues.filter(
@@ -355,7 +445,7 @@ function build(ctx: BuildContext): ExhibitInstance {
     onZoneExit() {
       inZone = false;
     },
-    update(dt) {
+    update(dt, elapsed) {
       // 入れ替えで立ち位置が変わるので、判定用の球も追従させる
       for (let i = 0; i < statues.length; i++) {
         targets[i]!.position.copy(slotPosition(statues[i]!.slot))
@@ -363,6 +453,20 @@ function build(ctx: BuildContext): ExhibitInstance {
           .setY(PLINTH_HEIGHT + 0.4);
       }
       tracker.update(dt);
+
+      /*
+       * 誘導は回廊に入ってから出す。遠くから見えていると
+       * 「順路の床サイン」として読み流され、入ってからは目に入らない。
+       * 一周し終えた（またはタネが割れた）ら役目は終わり。数字を読む場面で
+       * 足元が光っていると、そちらへ目が行く。
+       * ゾーンの外でも減衰させたいので、inZone の判定より前に置くこと。
+       */
+      const guideOn = inZone && !lapDone && revealProgress < 0.01;
+      guideFade += (Number(guideOn) - guideFade) * damp(2.5, dt);
+      guideMaterial.uniforms.uTime!.value = elapsed;
+      guideMaterial.uniforms.uFade!.value = guideFade;
+      guide.visible = guideFade > 0.002;
+
       if (!inZone) return;
 
       // 一周したか。中庭を軸にした回り込みの角度を積む
@@ -402,6 +506,8 @@ function build(ctx: BuildContext): ExhibitInstance {
       plate.dispose();
       coreGeometry.dispose();
       coreMaterial.dispose();
+      guideGeometry.dispose();
+      guideMaterial.dispose();
       stoneMaterial.dispose();
       plinthMaterial.dispose();
       ghostMaterial.dispose();
