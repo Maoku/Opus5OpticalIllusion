@@ -16,6 +16,7 @@ import {
 } from './common/shadowHullSpec';
 import { fieldToMesh } from './common/visualHull';
 import { footprintAround } from './common/placement';
+import { createSpotFixture } from './common/spotFixture';
 import type { BuildContext, ExhibitDefinition, ExhibitInstance } from './types';
 import type { SpotRequest } from '../world/Lighting';
 
@@ -47,6 +48,17 @@ const POSITION = { x: -10, y: 0, z: -32.2 };
 const ROTATION_Y = 0;
 const VIEW_DISTANCE = 3.6;
 
+/**
+ * 2 灯の色と広がり。SpotLight・灯体のレンズ・ビームで同じ値を使う。
+ * 見えている機材と実際の光がずれると、機材のほうが嘘に見える。
+ */
+const LIGHT_COLOR = 0xfff4e4;
+/**
+ * 影の輪郭を立たせる角度。スクリーンの内側で切れる広さにする。
+ * 板の外へ出たぶんは、部屋の壁に **2 つ目の影**を落として作品を汚す
+ */
+const BEAM_ANGLE = 0.42;
+
 /** ダイヤルの振れ幅。これ以上回すと影がスクリーンから外れてしまう */
 const MAX_DIAL = THREE.MathUtils.degToRad(42);
 /** ダイヤルの刻み数。一周すると「意味のある角度」を 2 回通る */
@@ -76,14 +88,7 @@ async function build(ctx: BuildContext): Promise<ExhibitInstance> {
   const screenFront = new THREE.MeshStandardMaterial({ color: 0xcfccc4, roughness: 0.96 });
   const screenBack = new THREE.MeshStandardMaterial({ color: 0x24262c, roughness: 0.95 });
   // BoxGeometry の面の並びは +X, -X, +Y, -Y, +Z, -Z。表は +Z
-  const screenMaterials = [
-    screenBack,
-    screenBack,
-    screenBack,
-    screenBack,
-    screenFront,
-    screenBack,
-  ];
+  const screenMaterials = [screenBack, screenBack, screenBack, screenBack, screenFront, screenBack];
   const screenGeometry = new THREE.BoxGeometry(SCREEN_WIDTH, SCREEN_HEIGHT, 0.08);
   /** 板の中心。内側の端がもう一方の平面に接するようにずらす */
   const screenOffset = SCREEN_WIDTH / 2 - SCREEN_DISTANCE;
@@ -201,12 +206,10 @@ async function build(ctx: BuildContext): Promise<ExhibitInstance> {
     return {
       position: toWorld(local[0], local[1], local[2]),
       target: target.clone(),
-      color: 0xfff4e4,
+      color: LIGHT_COLOR,
       intensity: 9.5,
       // 影の輪郭を立たせる。penumbra を上げると鳥にも魚にも見えなくなる
-      // 角度はスクリーンの内側で切れる広さ。板の外へ出たぶんは、
-      // 部屋の壁に **2 つ目の影**を落として作品を汚す
-      angle: 0.42,
+      angle: BEAM_ANGLE,
       // 距離減衰は切る（スクリーンを均一に照らすため）が、打ち切りは要る。
       // decay 0 のスポットは減衰しないので、放っておくと棟の反対側まで届く
       distance: 6,
@@ -218,28 +221,41 @@ async function build(ctx: BuildContext): Promise<ExhibitInstance> {
   });
   const removeSpots = requests.map((request) => ctx.lighting.addSpot(request));
 
-  // ライトの支柱。光源が宙に浮いていると「実際の光」に見えない
-  const poleMaterial = new THREE.MeshStandardMaterial({ color: 0x15171c, roughness: 0.8 });
-  const poleGeometry = new THREE.CylinderGeometry(0.035, 0.05, LUMP_CENTRE_Y, 12);
-  const poles = ([0, 1] as const).map(() => {
-    const pole = new THREE.Mesh(poleGeometry, poleMaterial);
-    pole.position.y = LUMP_CENTRE_Y / 2;
-    root.add(pole);
-    return pole;
-  });
+  // --- 灯体 2 台 -------------------------------------------------------------
+  // 光源が宙に浮いていると「実際の光」に見えず、ダイヤルが何を動かしているのか
+  // 読めない。機材を置き、口から先の空気を光らせて光路そのものを見せる
+  const fixtures = ([0, 1] as const).map(() =>
+    createSpotFixture({
+      height: LUMP_CENTRE_Y,
+      angle: BEAM_ANGLE,
+      // スクリーンに届く手前で消えきる長さ。板の上で切ると、
+      // 光の柱ではなく「白い板に貼った半透明の円」に見えてしまう
+      throwDistance: LIGHT_DISTANCE + SCREEN_DISTANCE - 0.45,
+      color: LIGHT_COLOR,
+      // 影の濃さが成立条件（brightnessCritical）。濃いビームは
+      // スクリーンの黒を持ち上げて鳥と魚の輪郭を鈍らせる
+      beamStrength: ctx.quality === 'low' ? 0 : 0.35,
+    }),
+  );
+  for (const fixture of fixtures) root.add(fixture.group);
 
   let detent = 0;
   let dial = 0;
+  /** ビームの近接フェード用。毎フレーム作らない */
+  const cameraWorld = new THREE.Vector3();
   let revealed = false;
   let revealProgress = 0;
   let revealTime = 0;
 
-  /** 現在のダイヤル角を 2 灯と支柱へ反映する */
+  /** 現在のダイヤル角を 2 灯と灯体へ反映する */
   const applyDial = (): void => {
     for (const index of [0, 1] as const) {
       const local = lightPosition(index, dial);
       requests[index]!.position.copy(toWorld(local[0], local[1], local[2]));
-      poles[index]!.position.set(local[0], LUMP_CENTRE_Y / 2, local[2]);
+      const rig = fixtures[index]!.group;
+      rig.position.set(local[0], 0, local[2]);
+      // 灯体の −Z が塊を向く。原点から見た方位そのもの
+      rig.rotation.y = Math.atan2(local[0], local[2]);
     }
   };
   applyDial();
@@ -264,6 +280,8 @@ async function build(ctx: BuildContext): Promise<ExhibitInstance> {
       }
       dial = THREE.MathUtils.lerp(dial, wanted, damp(5, dt));
       applyDial();
+      ctx.camera.getWorldPosition(cameraWorld);
+      for (const fixture of fixtures) fixture.update(dt, cameraWorld);
 
       wire.visible = revealProgress > 0.01;
       wireMaterial.opacity = revealProgress * 0.85;
@@ -288,8 +306,7 @@ async function build(ctx: BuildContext): Promise<ExhibitInstance> {
       pointerGeometry.dispose();
       (pointer.material as THREE.Material).dispose();
       dialMaterial.dispose();
-      poleGeometry.dispose();
-      poleMaterial.dispose();
+      for (const fixture of fixtures) fixture.dispose();
     },
   };
 }
@@ -317,8 +334,9 @@ export const lyingShadow: ExhibitDefinition = {
   brightnessCritical: true,
   position: POSITION,
   rotationY: ROTATION_Y,
-  // スクリーン 2 枚とライトの支柱 2 本を含む範囲
-  footprint: footprintAround(POSITION.x + 0.2, POSITION.z + 0.2, 1.9, 1.9),
+  // スクリーン 2 枚と灯体 2 台を含む範囲。灯体は光源（半径 2.0）より
+  // 後ろへ 0.4 ほど出るので、そのぶん光源側へ広げてある
+  footprint: footprintAround(POSITION.x + 0.3, POSITION.z + 0.3, 2.1, 2.1),
   viewSpots: [
     {
       standAt: { x: STAND.x, y: 0, z: STAND.z },
