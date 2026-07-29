@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { buildWallPieces, subtractIntervals } from '../src/world/wallGeometry';
-import { AREAS, DOORWAYS, DOOR_HEIGHT, areaAt, areaById } from '../src/data/layout';
+import { buildWallPieces, pieceSlab, subtractIntervals } from '../src/world/wallGeometry';
+import {
+  AREAS,
+  BASEBOARD_OVERHANG,
+  DOORWAYS,
+  DOOR_HEIGHT,
+  WALL_THICKNESS,
+  areaAt,
+  areaById,
+} from '../src/data/layout';
 import { museumCollision } from './helpers/museum';
 
 describe('subtractIntervals', () => {
@@ -75,6 +83,55 @@ describe('buildWallPieces', () => {
       }
     }
   });
+
+  it('keeps the wall face the room sees at ±WALL_THICKNESS/2', () => {
+    for (const area of AREAS) {
+      for (const p of buildWallPieces(area, DOORWAYS)) {
+        const min = p.axis === 'z' ? area.min[1] : area.min[0];
+        const inward = Math.abs(p.at - min) < 1e-6 ? 1 : -1;
+        const face = p.at + (inward * WALL_THICKNESS) / 2;
+        const slab = pieceSlab(p, WALL_THICKNESS);
+        const nearest = inward > 0 ? slab.to : slab.from;
+        expect(nearest, `${area.id} ${p.axis}=${p.at}`).toBeCloseTo(face, 9);
+      }
+    }
+  });
+});
+
+/**
+ * 隣り合うエリアはそれぞれ独立に境界の壁を建てるので、放っておくと
+ * 同一平面の板が 2 枚重なり、深度が競合して歩くたびにちらつく。
+ * 共有区間を半分に割る仕組み（WallPiece.inner）が効いていることを見る。
+ */
+describe('no two wall slabs share a plane', () => {
+  const overlap = (a0: number, a1: number, b0: number, b1: number): number =>
+    Math.min(a1, b1) - Math.max(a0, b0);
+
+  // 壁本体と、幅木／ピクチャーレール（左右に出っ張るぶん厚い）の両方で見る
+  for (const thickness of [WALL_THICKNESS, WALL_THICKNESS + BASEBOARD_OVERHANG * 2]) {
+    it(`leaves no overlapping volume at thickness ${thickness}`, () => {
+      const all = AREAS.flatMap((area) =>
+        buildWallPieces(area, DOORWAYS).map((p) => ({ area, p, slab: pieceSlab(p, thickness) })),
+      );
+
+      const clashes: string[] = [];
+      for (let i = 0; i < all.length; i++) {
+        for (let j = i + 1; j < all.length; j++) {
+          const a = all[i]!;
+          const b = all[j]!;
+          if (a.p.axis !== b.p.axis) continue;
+          if (overlap(a.slab.from, a.slab.to, b.slab.from, b.slab.to) <= 1e-6) continue;
+          if (overlap(a.p.from, a.p.to, b.p.from, b.p.to) <= 1e-6) continue;
+          if (overlap(a.p.y0, a.p.y1, b.p.y0, b.p.y1) <= 1e-6) continue;
+          clashes.push(
+            `${a.area.id} ${a.p.axis}=${a.p.at} [${a.p.from},${a.p.to}] X ` +
+              `${b.area.id} [${b.p.from},${b.p.to}]`,
+          );
+        }
+      }
+      expect(clashes).toEqual([]);
+    });
+  }
 });
 
 /**
