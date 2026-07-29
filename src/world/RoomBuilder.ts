@@ -12,7 +12,7 @@ import {
 } from '../data/layout';
 import { createCanvasTexture, drawNoise } from '../exhibits/common/CanvasTexture';
 import type { Collision } from './Collision';
-import { buildWallPieces, type WallPiece } from './wallGeometry';
+import { buildWallPieces, pieceSlab, type WallPiece } from './wallGeometry';
 
 export interface BuiltMuseum {
   group: THREE.Group;
@@ -425,14 +425,21 @@ function pieceGeometry(piece: WallPiece, thickness: number): THREE.BufferGeometr
   const length = Math.abs(piece.to - piece.from);
   const height = piece.y1 - piece.y0;
   const center = (piece.from + piece.to) / 2;
+  /*
+   * 隣のエリアと共有する面では、板を半分に割って自分の側だけを建てる。
+   * 両側が面をまたぐと同一平面が二重になってちらつくため（WallPiece.inner）。
+   */
+  const slab = pieceSlab(piece, thickness);
+  const depth = slab.to - slab.from;
+  const at = (slab.from + slab.to) / 2;
   const geo =
     piece.axis === 'z'
-      ? new THREE.BoxGeometry(length, height, thickness)
-      : new THREE.BoxGeometry(thickness, height, length);
+      ? new THREE.BoxGeometry(length, height, depth)
+      : new THREE.BoxGeometry(depth, height, length);
   if (piece.axis === 'z') {
-    geo.translate(center, piece.y0 + height / 2, piece.at);
+    geo.translate(center, piece.y0 + height / 2, at);
   } else {
-    geo.translate(piece.at, piece.y0 + height / 2, center);
+    geo.translate(at, piece.y0 + height / 2, center);
   }
   return geo;
 }
